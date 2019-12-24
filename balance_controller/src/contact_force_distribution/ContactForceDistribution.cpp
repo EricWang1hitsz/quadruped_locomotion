@@ -501,21 +501,23 @@ bool ContactForceDistribution::solveOptimization()
 //  std::cout<<params<<std::endl;
 
 //  x_ = params;*/
-
-  if(!is_minForceDiff_)
-    {
+    //----------------------------------------------------------
+    //(EricWang) Correct error due to different API version
+    //----------------------------------------------------------
+  // if(!is_minForceDiff_)
+  //   {
       if (!ooqpei::QuadraticProblemFormulation::solve(A_, S_, b_, W_, C_, c_, D_, d_, f_, x_))
         {
           ROS_ERROR("Contact Force is Minus !!!!!!!!!!!!!!!!!!!!");
           return false;
         }
-    }else{
-      if (!ooqpei::QuadraticProblemFormulation::solve(A_, S_, b_, W_, H_, C_, c_, D_, d_, f_, x_pre_, x_))
-        {
-          ROS_ERROR("Contact Force is Minus !!!!!!!!!!!!!!!!!!!!");
-          return false;
-        }
-    }
+    // }else{
+    //   if (!ooqpei::QuadraticProblemFormulation::solve(A_, S_, b_, W_, H_, C_, c_, D_, d_, f_, x_pre_, x_))
+    //     {
+    //       ROS_ERROR("Contact Force is Minus !!!!!!!!!!!!!!!!!!!!");
+    //       return false;
+    //     }
+    // }
 
   for (auto& legInfo : legInfos_)
   {

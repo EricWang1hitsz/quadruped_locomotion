@@ -36,6 +36,7 @@ using namespace free_gait;
       t_swing_delay(0.0),
       update_start_pose_flag_(false),
       crawl_support_margin(0.06)
+//      footstep_generate_flag(true)
 //      actionClient_(nodeHandle_)
   {
     if(!nodeHandle_.getParam("/use_terrian_map", use_terrian_map))
@@ -61,6 +62,7 @@ using namespace free_gait;
 
     velocity_command_sub_ = nodeHandle_.subscribe("/cmd_vel", 1, &GaitGenerateClient::velocityCommandCallback, this);
     foot_marker_pub_ = nodeHandle_.advertise<visualization_msgs::MarkerArray>("desired_footholds", 1);
+    nominal_stance_pub_ = nodeHandle_.advertise<visualization_msgs::MarkerArray>("nominal_stance_world", 100);
     com_proj_marker_pub_ = nodeHandle_.advertise<visualization_msgs::MarkerArray>("base_center_projection", 1);
     desired_base_com_marker_pub_ = nodeHandle_.advertise<visualization_msgs::Marker>("desired_base_center", 1);
     support_polygon_pub_ = nodeHandle_.advertise<geometry_msgs::PolygonStamped>("/support_region", 1);
@@ -81,6 +83,13 @@ using namespace free_gait;
                                   boost::bind(&GaitGenerateClient::doneCallback, this, _1, _2));
 
 
+  }
+
+  GaitGenerateClient::GaitGenerateClient(const ros::NodeHandle& node_handle, bool test)
+  {
+        ROS_INFO("Test Constrctor");
+        nominal_stance_pub_ = nodeHandle_.advertise<visualization_msgs::MarkerArray>("nominal_stance_world", 100);
+        nominal_basepose_pub_ = nodeHandle_.advertise<geometry_msgs::PoseArray>("nominal_basepose_world", 100);
   }
 
   GaitGenerateClient::~GaitGenerateClient() {
@@ -284,6 +293,9 @@ using namespace free_gait;
     limb_phase[LimbEnum::LH_LEG].stance_status = true;
     limb_phase[LimbEnum::LH_LEG].ready_to_swing = false;
     limb_phase[LimbEnum::LH_LEG].real_contact = true;
+    //-------------------------------------------------------
+    // Question when will turn it true?
+    //-------------------------------------------------------
     base_auto_flag = false;
     base_target_flag = false;
     pace_flag =true;
@@ -297,11 +309,17 @@ using namespace free_gait;
     return true;
   }
 
+
   bool GaitGenerateClient::initializeCrawl(const double t_swing, const double t_stance)
   {
+      // eric_wang: Only run once after response to the service.
+    ROS_INFO("Initialize Crawl Gait");
     t_swing_ = t_swing;
     t_stance_ = t_stance;
-
+    //-------------------------------------------------------------------
+    // Question Set hip_dispacement(z) into zero?
+    // MIT Cheetah3 Paper states that set hip_displacement(z) into zero.
+    //-------------------------------------------------------------------
     hip_dispacement.emplace(LimbEnum::LF_LEG, Position(-0.1,step_displacement,0));
     hip_dispacement.emplace(LimbEnum::RF_LEG, Position(-0.1,-step_displacement,0));
     hip_dispacement.emplace(LimbEnum::LH_LEG, Position(0.1,step_displacement,0));
@@ -310,6 +328,7 @@ using namespace free_gait;
     height_ = 0.55;
 //    step_msg_.base_auto.resize(1);
 //    step_msg_.base_target.resize(1);
+    // eric_wang: Not need to think about time.
     limb_phase[LimbEnum::LF_LEG].swing_phase = 0;
     limb_phase[LimbEnum::LF_LEG].stance_phase = 0;
     limb_phase[LimbEnum::LF_LEG].swing_status = true;
@@ -428,6 +447,10 @@ using namespace free_gait;
 //    desired_linear_velocity_world_ = orientaionBaseInWorld.rotate(desired_linear_velocity_);
 
 //    foothold_in_support_.clear();
+
+    //---------------------------------------------------------------------------------
+    // (EricWang) Get footprint center in world frame according to foothold in support.
+    //---------------------------------------------------------------------------------
     Position foot_sum;
     for(int i = 0;i<4;i++)
       {
@@ -444,6 +467,9 @@ using namespace free_gait;
 //    std::cout<<robot_state_.getNumberOfSupportLegs()<<" Foots Sum : "<<foot_sum<<std::endl;
     if(robot_state_.getNumberOfSupportLegs()>0)
       footprint_center_in_world = foot_sum/robot_state_.getNumberOfSupportLegs();
+    //----------------------------------------------------------
+    // (EricWang) Visualize CoM marker and leg support region.
+    //----------------------------------------------------------
     publishMarkers();
     return true;
   }
@@ -484,6 +510,10 @@ using namespace free_gait;
 //    double t_stance = 0.4;
     double height = robot_state_.getPositionWorldToBaseInWorldFrame()(2);
 //    double profile_height = 0.18;
+    //---------------------------------------------------------------------
+    // Question current velocity?
+    // State from copyRobotState, and the funtion is cycling all the time.
+    //---------------------------------------------------------------------
     LinearVelocity current_vel_in_base = robot_state_.getOrientationBaseToWorld().inverseRotate(robot_state_.getLinearVelocityBaseInWorldFrame());
     current_velocity_buffer_.push_back(current_vel_in_base);
 
@@ -506,7 +536,7 @@ using namespace free_gait;
 
             limb_phase.at(limb).ready_to_swing = false;
             LinearVelocity desired_vel2D, current_vel2D;
-            desired_vel2D = desired_linear_velocity_;
+            desired_vel2D = desired_linear_velocity_;// eric_wang: desired velocity in baselink;
             desired_vel2D(2) = 0.0;
             current_vel2D = average_vel;// current_vel_in_base;
 //            current_vel2D(0) = 0.0;
@@ -514,6 +544,10 @@ using namespace free_gait;
             double z_hip = height - footprint_center_in_world(2);
 //            ROS_INFO("relative base height is : %f", z_hip);
             double yaw_angle;
+            //----------------------------------------------------------------
+            // Question Any orinetation difference between footprint and base?
+            // Base frame has pitch, roll compared with footprint frame.
+            //----------------------------------------------------------------
             EulerAnglesZyx ypr(robot_state_.getOrientationBaseToWorld());
             yaw_angle = ypr.setUnique().vector()(0);
             RotationQuaternion orinetationFootprintToWorld = RotationQuaternion(EulerAnglesZyx(yaw_angle,0,0));
@@ -525,10 +559,13 @@ using namespace free_gait;
 //            displace_in_footprint = Position(0.5*t_stance_*desired_vel2D);
             displace_in_footprint = Position(0.5*t_stance_*desired_vel2D
                                                  + sqrt(z_hip/9.8) * (current_vel2D - desired_vel2D));
-
+            //---------------------------------------------------------------------------------------------
+            // Question Crawl changes gait based on action, not time. Howerver it uses time when position.
+            //---------------------------------------------------------------------------------------------
+            // TODO(EricWang): Learn static gait timing diagram.
             if(pace_flag || crawl_flag)
               {
-                displace_in_footprint = Position(0.34*t_stance_*desired_vel2D);
+                displace_in_footprint = Position(0.34*t_stance_*desired_vel2D); // eric_wang: 1/3.
 
               }
 //            if(displace_in_footprint.y()>0.2)
@@ -578,10 +615,13 @@ using namespace free_gait;
 //                orinetationFootprintToWorld.rotate(target_in_footprint + Position(t_stance_*desired_vel2D));
 
             footstep_msg_.name = getLimbStringFromLimbEnum(limb);
-
+            //----------------------------------------------------------
+            // (EricWang) Take care of angular velocity.
+            //----------------------------------------------------------
             if(crawl_flag || pace_flag)
               {
                 frame = "odom";
+                /* Note(eric_wang) Angular displacement in baselink*/
                 Position displace_of_angular = Position(desired_angular_velocity_.cross(robot_state_.getPositionBaseToHipInBaseFrame(limb)));
 
                 if(limb == free_gait::LimbEnum::LF_LEG || limb == free_gait::LimbEnum::RF_LEG)
@@ -596,7 +636,7 @@ using namespace free_gait;
                     for(int i=0;i<4;i++)
                       {
                         free_gait::LimbEnum limb_i = static_cast<free_gait::LimbEnum>(i);
-                        foot_sum += foothold_in_support_[limb_i];
+                        foot_sum += foothold_in_support_[limb_i];// eric_wang: Position of foothold in support in world frame.
                         hip_to_foot_in_base[limb_i] = robot_state_.getPositionBaseToFootInBaseFrame(limb_i)
                             -robot_state_.getPositionBaseToHipInBaseFrame(limb_i);
 //                        std::cout<<getLimbStringFromLimbEnum(limb_i)<<" Hip to Foot In Base : "<<hip_to_foot_in_base[limb_i]<<std::endl;
@@ -825,6 +865,10 @@ using namespace free_gait;
             kindr_ros::convertToRosGeometryMsg(robot_state_.getSurfaceNormal(limb),
                                                footstep_msg_.surface_normal.vector);
 //            step_msg_.footstep[i] = footstep_msg_;
+            //----------------------------------------------------------
+            // (EricWang) Push back footstep msgs into step msgs.
+            //----------------------------------------------------------
+            ROS_INFO("Generate foothold:: push back footstep msgs");
             step_msg_.footstep.push_back(footstep_msg_);
 //            ROS_WARN("Generate foot hold position(%f, %f, %f) for %s ",footstep_msg_.target.point.x,footstep_msg_.target.point.y,footstep_msg_.target.point.z,
 //                     getLimbStringFromLimbEnum(limb).c_str());
@@ -844,10 +888,133 @@ using namespace free_gait;
 //    ROS_INFO_STREAM("Footprint Center in Base is : "<<footprint_center_in_base<<std::endl);
     return true;
   }
+  //! eric_wang: ADD footstep generation by nominal fothold.
+  bool GaitGenerateClient::footstepGeneration()
+  {
+//      if(footstep_generate_flag == true)//! eric_wang: Set flag to run, or it will run all the time.
+//      {
+          ROS_WARN("Generate Footstep Test");
+          start_pose = Pose(robot_state_.getPositionWorldToBaseInWorldFrame(), robot_state_.getOrientationBaseToWorld());
+          std::cout << "start pose position:" << start_pose.getPosition() << std::endl;
+          std::cout << "start pose rotation:" << start_pose.getRotation() << std::endl;
+          EulerAnglesZyx ypr(start_pose.getRotation());
+          double start_yaw = ypr.setUnique().vector()(0);// Returns the Euler angles in a vector.
+          std::cout << " start yaw is : " << start_yaw << std::endl;
+          goal_pose_.getRotation() = EulerAnglesZyx(start_yaw + 0.75, 0, 0);
+          std::cout << "goal pose ratation is :" << goal_pose_.getRotation() << std::endl;
+          ROS_WARN_STREAM("test" << EulerAnglesZyx(start_yaw + 0.785, 0, 0));// 45 degree.
+          goal_pose_ = Pose(start_pose.getPosition() + Position(3, 1, 0), goal_pose_.getRotation());// goal pose.
+          std::cout << "goal pose position" << goal_pose_.getPosition() << std::endl;
+          double ndistance = (goal_pose_.getPosition() - start_pose.getPosition()).norm();
+          double step_length = 0.4;
+          int sampled_stance_num = ndistance / step_length;//! eric_wang: how many sampled stance between start pose and goal pose.
+          std::cout << "sampled stance number:" << sampled_stance_num << std::endl;
+          Position distance = (goal_pose_.getPosition() - start_pose.getPosition()) / sampled_stance_num;
+
+          double nangle = fabs(goal_pose_.getRotation().getDisparityAngle(start_pose.getRotation()));
+          double angle = nangle / sampled_stance_num;
+
+
+          for(int i = 1; i < sampled_stance_num; i++)
+          {
+              interpolation_pose_.getPosition() = start_pose.getPosition() + i * distance; //! eric_wang: in world frame.
+              std::cout << "Interpolation position:" << interpolation_pose_.getPosition() << std::endl;
+              double yaw_angle = start_yaw + i * angle;
+              interpolation_pose_.getRotation() = EulerAnglesZyx(start_yaw + yaw_angle, 0, 0);//! eric_wang: in world frame.
+              std::cout << "Interpolation rotation:" << interpolation_pose_.getRotation() << std::endl;// 0.02 for each.
+    //          std::cout << interpolation_pose_ << std::endl;
+              nominal_basepose_array = free_gait::RosVisualization::getBasePoseArray(interpolation_pose_, "odom");
+//              nominal_basepose_pub_.publish(nominal_basepose_array);
+              discretePose_vec.push_back(interpolation_pose_);
+
+              Position position3d;// Left front foothold position in base frame.
+              position3d << 0.4, 0.25, 0;
+              LF_nominal = interpolation_pose_.getPosition() + interpolation_pose_.getRotation().rotate(Position(Eigen::Vector3d(position3d(0), position3d(1), position3d(2))));
+              RF_nominal = interpolation_pose_.getPosition() + interpolation_pose_.getRotation().rotate(Position(Eigen::Vector3d(position3d(0), -position3d(1), position3d(2))));
+              LH_nominal = interpolation_pose_.getPosition() + interpolation_pose_.getRotation().rotate(Position(Eigen::Vector3d(-position3d(0), position3d(1), position3d(2))));
+              RH_nominal = interpolation_pose_.getPosition() + interpolation_pose_.getRotation().rotate(Position(Eigen::Vector3d(-position3d(0), -position3d(1), position3d(2))));
+              nominalStanceInWorldFrame_.emplace(LimbEnum::LF_LEG, LF_nominal);
+              nominalStanceInWorldFrame_.emplace(LimbEnum::RF_LEG, RF_nominal);
+              nominalStanceInWorldFrame_.emplace(LimbEnum::LH_LEG, LH_nominal);
+              nominalStanceInWorldFrame_.emplace(LimbEnum::RH_LEG, RH_nominal);
+              std::cout << "nominal stance in world frame: " << std::endl << nominalStanceInWorldFrame_ << std::endl;
+              nominalStanceInWorldFrame_buffer.push_back(nominalStanceInWorldFrame_);
+//              std::cout << "buffer size:" << nominalStanceInWorldFrame_buffer.size() << std::endl;
+              nominalStanceInWorldFrame_.clear();//! eric_wang: key words are the same, so delete old data to store new stance.
+          }
+          nominal_basepose_pub_.publish(nominal_basepose_array);// publish base pose array.
+
+          int stance_num = 0;
+          int foothold_num = 0;
+          for(std::vector<free_gait::Stance>:: iterator it = nominalStanceInWorldFrame_buffer.begin(); it != nominalStanceInWorldFrame_buffer.end(); ++it)
+          {
+              nominalStanceInWorldFrame_ = *it;
+              ROS_WARN_STREAM("the stance No:" << stance_num << std::endl);
+              for(const auto& stance : nominalStanceInWorldFrame_)
+              {
+                  std::cout << stance.first << ":" << "is" << stance.second << std::endl;
+                  // publish nominal stance markers.
+                  nominal_foothold_marker.header.frame_id = "odom";
+                  nominal_foothold_marker.header.stamp = ros::Time::now();
+                  nominal_foothold_marker.lifetime = ros::Duration();
+                  nominal_foothold_marker.ns = "nominal_stance";
+                  nominal_foothold_marker.id = foothold_num;
+                  nominal_foothold_marker.type = visualization_msgs::Marker::SPHERE;
+                  nominal_foothold_marker.action = visualization_msgs::Marker::ADD;
+                  if(stance.first == LimbEnum::LF_LEG)
+                  {
+                      nominal_foothold_marker.color.r = 0;
+                      nominal_foothold_marker.color.a = 1;
+                      nominal_foothold_marker.color.b = 1;
+                      nominal_foothold_marker.color.g = 1;
+                  }
+                  if(stance.first == LimbEnum::RF_LEG)
+                  {
+                      nominal_foothold_marker.color.r = 1;
+                      nominal_foothold_marker.color.a = 1;
+                      nominal_foothold_marker.color.b = 1;
+                      nominal_foothold_marker.color.g = 1;
+                  }
+                  if(stance.first == LimbEnum::LH_LEG)
+                  {
+                      nominal_foothold_marker.color.r = 1;
+                      nominal_foothold_marker.color.a = 1;
+                      nominal_foothold_marker.color.b = 0;
+                      nominal_foothold_marker.color.g = 1;
+                  }
+                  if(stance.first == LimbEnum::RH_LEG)
+                  {
+                      nominal_foothold_marker.color.r = 1;
+                      nominal_foothold_marker.color.a = 1;
+                      nominal_foothold_marker.color.b = 1;
+                      nominal_foothold_marker.color.g = 0;
+                  }
+                  nominal_foothold_marker.scale.x = 0.08;
+                  nominal_foothold_marker.scale.y = 0.08;
+                  nominal_foothold_marker.scale.z = 0.08;
+                  Pose pose;
+                  pose.getPosition() = stance.second;
+                  kindr_ros::convertToRosGeometryMsg(pose, nominal_foothold_marker.pose);
+                  nominal_stance_markers.markers.push_back(nominal_foothold_marker);
+                  foothold_num++;
+                  nominal_stance_pub_.publish(nominal_stance_markers);
+              }
+
+              stance_num++;
+
+          }
+          nominalStanceInWorldFrame_buffer.clear();
+//      }
+
+//      footstep_generate_flag = false;
+      return true;
+  }
+
 
   bool GaitGenerateClient::updateBaseMotion(LinearVelocity& desired_linear_velocity,
                                             LocalAngularVelocity& desired_angular_velocity)
   {
+      // eric_wang: It will cycle all the time before next step start.
 //    ROS_INFO("In update Base Motion");
 //    ROS_WARN_STREAM("Desired Velocity :"<<desired_linear_velocity_<<std::endl);
     visualization_msgs::Marker base_marker;
@@ -866,6 +1033,9 @@ using namespace free_gait;
     Position foot_sum;
     std_msgs::Float64MultiArray leg_weights;
     leg_weights.data.resize(4);
+    //----------------------------------------------------------
+    // (EricWang) Weighting factor of a leg for the COM.
+    //----------------------------------------------------------
     for(int i = 0; i<4 ;i++)
       {
         /****************
@@ -879,6 +1049,7 @@ using namespace free_gait;
         if(limb_phase.at(limb).stance_status)
           total_phase = (limb_phase.at(limb).stance_phase)/(t_stance_);
 //          total_phase = (limb_phase.at(limb).stance_phase + t_swing_)/(t_stance_ + t_swing_);
+        /* Note(eric_wang) Weighting factors based on the contact and swing phase.*/
         double k_st = 0.5*(erf(total_phase/(sigma_st_0*sqrt(2))) +
                            erf((1 - total_phase)/(sigma_st_1*sqrt(2))));
         double k_sw = 0.5*(2 + erf(-total_phase/(sigma_sw_0*sqrt(2))) +
@@ -890,10 +1061,15 @@ using namespace free_gait;
 //      ROS_INFO("Calculate weight for %s\n",getLimbStringFromLimbEnum(limb).c_str());
       }
     weight_pub_.publish(leg_weights);
+
+
+    //-----------------------------------------------------------------------------------------------
+    // (EricWang) To calculate the weighted virtual support polygon vertices and get the desired CoM.
+    //-----------------------------------------------------------------------------------------------
     for(int j = 0; j<4; j++)
       {
         LimbEnum limb_c = static_cast<LimbEnum>(j);
-        //! WSHY: to decide the CW leg and CCW leg, oidered [LF,RF,RH,LH]
+        //! WSHY: to decide the CW leg and CCW leg, odered [LF,RF,RH,LH]
         int limb_cw_index = j + 1;
         int limb_ccw_index = j - 1;
         if(limb_cw_index>3)
@@ -902,18 +1078,23 @@ using namespace free_gait;
           limb_ccw_index = limb_ccw_index + 4;
         LimbEnum limb_cw = static_cast<LimbEnum>(limb_cw_index);
         LimbEnum limb_ccw = static_cast<LimbEnum>(limb_ccw_index);
-        Position foot_c, foot_cw, foot_ccw, vp_cw, vp_ccw;
+        Position foot_c, foot_cw, foot_ccw, vp_cw, vp_ccw;// eric_wang: virtual point.
         foot_cw = robot_state_.getPositionWorldToFootInWorldFrame(limb_cw);
         foot_ccw = robot_state_.getPositionWorldToFootInWorldFrame(limb_ccw);
         foot_c = robot_state_.getPositionWorldToFootInWorldFrame(limb_c);
+
+        /* Note(eric_wang) Virtual point clockwise to foot i.*/
         vp_cw = foot_c * limb_phase.at(limb_c).weight_to_CoM +
             foot_cw * (1 - limb_phase.at(limb_c).weight_to_CoM);
+        /* Note(eric_wang) Virtual point counterclockwise to foot i.*/
         vp_ccw = foot_c * limb_phase.at(limb_c).weight_to_CoM +
             foot_ccw * (1 - limb_phase.at(limb_c).weight_to_CoM);
+        /* Note(eric_wang) Predictive support polygon vertex for leg i.*/
         limb_phase.at(limb_c).virtual_point = (limb_phase.at(limb_c).weight_to_CoM * foot_c
             + limb_phase.at(limb_cw).weight_to_CoM * vp_cw + limb_phase.at(limb_ccw).weight_to_CoM
             * vp_ccw) / (limb_phase.at(limb_c).weight_to_CoM + limb_phase.at(limb_ccw).weight_to_CoM
                          + limb_phase.at(limb_cw).weight_to_CoM);
+        /* Note(eric_wang) Desired CoM position is the average of these weighted virtual support polygon vertices.*/
         P_CoM_desired_ = P_CoM_desired_ + limb_phase.at(limb_c).virtual_point;
 //        ROS_INFO("Calculate Virtual Position for %s\n",getLimbStringFromLimbEnum(limb_c).c_str());
 //        if(robot_state_.isSupportLeg(limb_c))
@@ -945,6 +1126,9 @@ using namespace free_gait;
 
       P_CoM_desired_ = 0.25 * P_CoM_desired_;
 
+      //------------------------------------------------------------------------------------
+      // (EricWang) Save the desired base pose into base_target msgs, and publish base pose.
+      //------------------------------------------------------------------------------------
       LinearVelocity current_vel = robot_state_.getLinearVelocityBaseInWorldFrame();
 //      current_vel.z() = 0;
       LinearVelocity vd = desired_linear_velocity_world_;
@@ -976,7 +1160,8 @@ using namespace free_gait;
 //        }
 //      support_polygon_pub_.publish(support_region);
 
-
+      // eric_wang: Pose desired_base_pose_;
+      // eric_wang: nav_msgs::Path desired_com_path_;
 //      P_CoM_desired_(2) = height_ + footprint_center_in_world(2) - 0.02;//robot_state_.getPositionWorldToBaseInWorldFrame()(2);
       P_CoM_desired_(2) = height_ + optimized_base_pose.getPosition()(2);// - 0.03;// + t_stance_*vd.z();// - 0.02;// + t_stance_*current_vel.z();
 //      P_CoM_desired_(2) += robot_state_.getPositionWorldToBaseInWorldFrame()(2) - footprint_center_in_world(2);
@@ -990,6 +1175,9 @@ using namespace free_gait;
       base_target_msg_.average_angular_velocity = desired_angular_velocity_.norm();
       base_target_msg_.target.header.frame_id = "odom";
       kindr_ros::convertToRosGeometryMsg(P_CoM_desired_, base_target_msg_.target.pose.position);
+      //-------------------------------------------------------
+      // Question Need to think about base pose orientation?
+      //-------------------------------------------------------
 //      kindr_ros::convertToRosGeometryMsg(robot_state_.getOrientationBaseToWorld(), base_target_msg_.target.pose.orientation);
       double yaw_angle;
       EulerAnglesZyx ypr(robot_state_.getOrientationBaseToWorld());
@@ -999,6 +1187,9 @@ using namespace free_gait;
       ypr_optimized.setUnique();
       double pitch_angle = ypr_optimized.pitch();
       yaw_angle = ypr_optimized.yaw();
+      //------------------------------------------------------------------
+      // Question Why not wrong? left is quaternion, right is euler angle.
+      //------------------------------------------------------------------
       desired_base_pose_.getRotation() = EulerAnglesZyx(yaw_angle, pitch_angle, 0);
       kindr_ros::convertToRosGeometryMsg(RotationQuaternion(EulerAnglesZyx(yaw_angle, pitch_angle, 0)), base_target_msg_.target.pose.orientation);
 
@@ -1028,12 +1219,22 @@ using namespace free_gait;
 //      base_auto_msg_.height = height_;
 //      base_auto_msg_.ignore_timing_of_leg_motion = false;
 //      step_msg_.base_auto[0] =base_auto_msg_;
-
+      //-------------------------------------------------------------------------
+      // Question Which case use base_target, or base_auto? Nowhere turn it true.
+      //-------------------------------------------------------------------------
+      // TODO(EricWang): Test which case it enter?
+      //------------------------------------------------------------------------------------------------------
+      // Question I find the code below doesn't run. define base auto motion of crawl when send motion goal.
+      //------------------------------------------------------------------------------------------------------
       if(base_target_flag && !crawl_flag)
-        step_msg_.base_target[0] = base_target_msg_;
+      {
+          ROS_WARN("Test: use base target msgs");
+          step_msg_.base_target[0] = base_target_msg_;
+      }
 
       if(base_auto_flag && !crawl_flag)
         {
+          ROS_WARN("Test: use base auto msgs");
           base_auto_msg_.average_linear_velocity = 1;//2*desired_linear_velocity.norm();
           base_auto_msg_.average_angular_velocity = 1;//5*desired_angular_velocity.norm();
           base_auto_msg_.height = height_;
@@ -1062,7 +1263,7 @@ using namespace free_gait;
       return 3;
     return 0;
   }
-
+  // FIXME(EricWang): what??
   bool GaitGenerateClient::optimizePose(free_gait::Pose& pose)
   {/*
     Position foot_sum;
@@ -1140,6 +1341,7 @@ using namespace free_gait;
         sendGoal(steps_goal);
         ROS_DEBUG("Send Step Goal Once!!!!!!!!!!");
         step_msg_.footstep.clear();
+        /* Note(eric_wang) Clear current velocity buffer, but how to achieve current velocity many time*/
         current_velocity_buffer_.clear();
       }
 //    if(pace_flag)
@@ -1151,10 +1353,12 @@ using namespace free_gait;
 //        baseMotion.
 
 //      }
+
     if(crawl_flag && crawl_leg_switched)
       {
           crawl_leg_switched = false;
 
+          ROS_WARN("Crawl leg switched, creat base auto motion");
             free_gait_msgs::Step preStep;
             free_gait_msgs::BaseAuto baseMotion;
             baseMotion.height = height_;
@@ -1162,7 +1366,9 @@ using namespace free_gait;
             baseMotion.average_angular_velocity = 0.15;//5*desired_angular_velocity.norm();
             baseMotion.ignore_timing_of_leg_motion = true;
             baseMotion.support_margin = crawl_support_margin;
-
+            //----------------------------------------------------------
+            // (EricWang) Push back base auto msgs into step msgs.
+            //----------------------------------------------------------
             preStep.base_auto.push_back(baseMotion);
             steps_goal.steps.push_back(preStep);
 
@@ -1171,6 +1377,7 @@ using namespace free_gait;
             steps_goal.steps.push_back(step_msg_);
             steps_goal.preempt = steps_goal.PREEMPT_NO;
             sendGoal(steps_goal);
+            ROS_WARN("Send step goal Once!!!!!!");
             ROS_DEBUG("Send Step Goal Once!!!!!!!!!!");
             step_msg_.footstep.clear();
             step_msg_.base_auto.clear();
@@ -1191,11 +1398,16 @@ using namespace free_gait;
   {
     //! WSHY: this to generate periodical swing and stance situation for each leg
     //! TODO : Test it via a topic?
+    //!
+
+      //----------------------------------------------------------
+      // (EricWang) Set crawl swing leg and stance leg.
+      //----------------------------------------------------------
     if(crawl_flag)
       {
           if(is_done)
           {
-            ROS_INFO("Switch to Next Step");
+            ROS_INFO("Gait generate client:: advance:: Switch to Next Step");
             is_done = false;
             LimbEnum current_swing_leg, next_swing_leg;
             //! WSHY: switch leg
@@ -1213,6 +1425,7 @@ using namespace free_gait;
             int current_leg = static_cast<int>(current_swing_leg);
             for(int i = 0; i<4; i++)
               {
+                // eric_wang: crawl swing leg order.
                 if(crawl_leg_order[i] == current_leg)
                   {
                     next_index = i+1;
@@ -1230,6 +1443,7 @@ using namespace free_gait;
           for(int i = 0;i<4;i++)
             {
               LimbEnum limb = static_cast<LimbEnum>(i);
+              // eric_wang: if limb's stance status is true, set it support leg.
               robot_state_.setSupportLeg(limb, limb_phase.at(limb).stance_status);
             }
 //          if(is_done && !crawl_leg_switched)
@@ -1237,13 +1451,18 @@ using namespace free_gait;
 //              pre_step = true;
 //            }
 
-          }else{
+          }
+
+    //----------------------------------------------------------
+    // (EricWang) Set Pace and Trot Gait.
+    //----------------------------------------------------------
+        else{
 
         int number_of_swing_contacted = 0;
         bool is_contact = false;
         for(int i = 0;i<4;i++)
           {
-            LimbEnum limb = static_cast<LimbEnum>(i);
+            LimbEnum limb = static_cast<LimbEnum>(i);// eric_wang: initilizeTrot(0.3, 0.3).
             if(limb_phase.at(limb).swing_status && limb_phase.at(limb).swing_phase>t_swing_/2 && limb_phase.at(limb).real_contact)
               {
                 number_of_swing_contacted++;
@@ -1258,12 +1477,12 @@ using namespace free_gait;
         for(int i =0;i<4;i++)
           {
             LimbEnum limb = static_cast<LimbEnum>(i);
-
+            // eric_wang: plan stance leg.
             if(limb_phase.at(limb).swing_status){
               limb_phase.at(limb).swing_phase = limb_phase.at(limb).swing_phase + dt;
     //          ROS_INFO("Leg %s is in swing phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
     //                   limb_phase.at(limb).swing_phase, t_swing_);
-              if(limb_phase.at(limb).swing_phase>t_swing_ && is_contact)
+              if(limb_phase.at(limb).swing_phase > t_swing_ && is_contact)
                 {
                   //! WSHY: normal contacted
                   limb_phase.at(limb).swing_phase = 0;
@@ -1288,7 +1507,10 @@ using namespace free_gait;
 
 
                 }*/
-              } else if (limb_phase.at(limb).stance_status) {
+              }
+            // eric_wang: plan swing leg.
+            else if (limb_phase.at(limb).stance_status)
+            {
                 limb_phase.at(limb).stance_phase = limb_phase.at(limb).stance_phase + dt;
       //          ROS_INFO("Leg %s is in stance phase : %f/%f\n", getLimbStringFromLimbEnum(limb).c_str(),
       //                   limb_phase.at(limb).stance_phase, t_stance_);

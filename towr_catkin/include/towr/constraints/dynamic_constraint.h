@@ -99,6 +99,12 @@ private:
   void UpdateModel(double t) const;
 
   void UpdateConstraintAtInstance(double t, int k, VectorXd& g) const override;
+  /**
+   * @brief UpdateBoundsAtInstance Sets upper/lower bound a specific time t, corresponding to node k.
+   * @param t
+   * @param k
+   * @param bounds
+   */
   void UpdateBoundsAtInstance(double t, int k, VecBound& bounds) const override;
   void UpdateJacobianAtInstance(double t, int k, std::string, Jacobian&) const override;
 };

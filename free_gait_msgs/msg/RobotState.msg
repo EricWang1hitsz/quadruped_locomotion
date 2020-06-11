@@ -3,6 +3,7 @@ sensor_msgs/JointState rf_leg_joints
 sensor_msgs/JointState rh_leg_joints
 sensor_msgs/JointState lh_leg_joints
 nav_msgs/Odometry base_pose
+geometry_msgs/Accel base_desired_acceleration
 free_gait_msgs/LegMode lf_leg_mode
 free_gait_msgs/LegMode rf_leg_mode
 free_gait_msgs/LegMode rh_leg_mode

@@ -200,7 +200,7 @@ namespace balance_controller {
     all_joint_positions.setZero();
     all_joint_velocities.setZero();
     all_joint_efforts.setZero();
-
+    ROS_INFO("Single leg controller initialized");
   }
 
   void SingleLegController::dynamicReconfigureCallback(balance_controller::balance_controllerConfig& config, uint32_t level)
@@ -233,11 +233,15 @@ namespace balance_controller {
     robot_state_->setCurrentLimbJointVelocities(all_joint_velocities);
 
     ros::Duration real_time_period = ros::Duration(period.toSec());
+    //! eric_wang: Set target position and velocity of legs to move.
     for(unsigned int i =0; i<leg_to_move.size(); i++)
       {
 //        free_gait::LimbEnum limb = static_cast<free_gait::LimbEnum>(i);
         free_gait::LimbEnum limb = leg_to_move[i];
         int j = static_cast<int>(leg_to_move[i]);
+        //-------------------------------------------------------
+        //! Question target foot position is constant?? relate to joint position?
+        //-------------------------------------------------------
         robot_state_->setTargetFootPositionInBaseForLimb(Position(foot_positions.at(limb).vector()), limb);
         robot_state_->setTargetFootVelocityInBaseForLimb(LinearVelocity(foot_velocities.at(limb).vector()), limb);
         single_leg_solver_->setvecQAct(all_joint_positions.vector().segment(3*j, 3), limb);
@@ -255,10 +259,15 @@ namespace balance_controller {
       {
 
         free_gait::LimbEnum limb = leg_to_move[i];
+        //! eric_wang: Start index of joint, joint 0,1,2 (Leg 1).
         int start_index = static_cast<int>(leg_to_move[i])*3;
 //        std::cout<<"Num of leg to move "<<leg_to_move.size()<<endl<<"update leg "<<start_index/3<<endl;
 //        free_gait::LimbEnum limb = static_cast<free_gait::LimbEnum>(i);
 //        single_leg_solver_->update(time, real_time_period, limb, true);
+
+        //----------------------------------------------------------
+        //! (EricWang) Set support leg.
+        //----------------------------------------------------------
         if(robot_state_->isSupportLeg(limb))
           {
             if(control_methods[i] == "contact_force")
@@ -267,12 +276,14 @@ namespace balance_controller {
                 Force contactForce = Force(contactForces_.at(limb).toImplementation());
                 free_gait::JointEffortsLeg jointTorques = free_gait::JointEffortsLeg(jacobian.transpose() * contactForce.toImplementation());
                 free_gait::JointPositionsLeg joint_position_leg = robot_state_->getJointPositionFeedbackForLimb(limb);
+                // TODO(EricWang): How to calculate the joint torque?
                 jointTorques += robot_state_->getGravityCompensationForLimb(limb, joint_position_leg, gravity_in_base);
                 for(int j = start_index;j<start_index +3;j++)
                   {
                     joints[j].setCommand(jointTorques(j));
                     robot_state_handle.mode_of_joint_[j] = 4;
                   }
+                ROS_INFO("contact force for stance");
                 continue;
               }
             if(control_methods[i] == "end_position" || is_cartisian_motion_.at(limb))
@@ -286,6 +297,7 @@ namespace balance_controller {
                     robot_state_handle.mode_of_joint_[j] = 4;
 
                   }
+              ROS_INFO_ONCE("Contorl end position for stance");
                 continue;
               }
             if(control_methods[i] == "joint_position" || !is_cartisian_motion_.at(limb))
@@ -295,10 +307,13 @@ namespace balance_controller {
                     robot_state_handle.mode_of_joint_[j] = 1;
                     position_joints[j].setCommand(joint_commands_[j]);
                   }
-                ROS_INFO_ONCE("Joint control");
+                ROS_INFO_ONCE("Joint control for stance");
               }
             continue;
           }
+        //----------------------------------------------------------
+        //! (EricWang) Set swing leg.
+        //----------------------------------------------------------
         else if (!robot_state_->isSupportLeg(limb)) {
             if(control_methods[i] == "end_position" || is_cartisian_motion_.at(limb))
               {
@@ -318,13 +333,14 @@ namespace balance_controller {
                     double effort_command;
                     if(is_cartisian_motion_.at(limb))
                       effort_command = single_leg_solver_->getVecTauAct()[j - start_index];
-                    if(effort_command>20.0)
-                      effort_command = 20.0;
-                    if(effort_command<-20.0)
-                      effort_command = -20.0;
+                    ROS_INFO_STREAM("effort command:" << effort_command << std::endl );
+//                    if(effort_command>20.0)
+//                      effort_command = 20.0;
+//                    if(effort_command<-20.0)
+//                      effort_command = -20.0;
                     joints[j].setCommand(effort_command);
                   }
-//                ROS_INFO("control end position");
+                ROS_INFO_ONCE("control end position");
                 continue;
               }
             if(control_methods[i] == "contact_force")
@@ -341,7 +357,9 @@ namespace balance_controller {
                     robot_state_handle.mode_of_joint_[j] = 4;
                   }
                 std::cout<<"Joint Torque to Apply is : "<<jointTorques<<std::endl;
+                ROS_INFO_ONCE("contact force");
                 continue;
+
               }
             if(control_methods[i] == "joint_position" || !is_cartisian_motion_.at(limb))
               {

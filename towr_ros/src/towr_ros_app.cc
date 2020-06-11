@@ -49,22 +49,25 @@ public:
   void SetTowrInitialState() override
   {
       ROS_INFO("Set towr initial state");
-    // nominal stance in base frame.
-    auto nominal_stance_B = formulation_.model_.kinematic_model_->GetNominalStanceInBase();
+      // nominal stance in base frame.
+      auto nominal_stance_B = formulation_.model_.kinematic_model_->GetNominalStanceInBase();
 
-    double z_ground = 0.0;
-    std::for_each(formulation_.initial_ee_W_.begin(), formulation_.initial_ee_W_.end(),
+      double z_ground = 0.0;
+      std::for_each(formulation_.initial_ee_W_.begin(), formulation_.initial_ee_W_.end(),
                   [&](Vector3d& p){ p.z() = z_ground; } );// feet at 0 height
-//    //! eric_wang: initialized base position.
+
 //    formulation_.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
       BaseState initial_base_;
       initial_base_ = state_;
+
+      // Initial stance in world frame.
       EEPos initial_stance_W;
 
       double yaw = initial_base_.ang.p().z();
       Eigen::Vector3d euler(0.0, 0.0, yaw);
       Eigen::Matrix3d w_R_b = EulerConverter::GetRotationMatrixBaseToWorld(euler);
       // FIXME(EricWang): Fix error.
+      // ROS_INFO_STREAM("Get EE Count:" << formulation_.params_.GetEECount() << std::endl); << 4.
       for(int ee = 0; ee < formulation_.params_.GetEECount(); ee++)
       {
           Vector3d intial_ee_pos_W = initial_base_.lin.p() + w_R_b * nominal_stance_B.at(ee);

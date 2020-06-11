@@ -53,19 +53,21 @@ bool PoseOptimizationQP::optimize(Pose& pose)
   const Position centerOfMassInBaseFrame(
       adapter_.transformPosition(adapter_.getWorldFrameId(), adapter_.getBaseFrameId(),
                                  adapter_.getCenterOfMassInWorldFrame()));
+  ROS_WARN("Pose optimization QP running");
   std::cout<<"COM is :"<<centerOfMassInBaseFrame<<std::endl;
 
   // Problem definition:
-  // min Ax - b, Gx <= h, x is base center (x,y,z),minimaze foothold offsets(I_r_F_hat - I_r_F)
-  unsigned int nFeet = stance_.size();
-  MatrixXd A = MatrixXd::Zero(nDimensions_ * nFeet, nStates_);
+  // min Ax - b, Gx <= h, x is base position in world frame (x,y,z),minimaze foothold offsets(I_r_F_nominal - I_r_F)
+  unsigned int nFeet = stance_.size();// eric_wang: foothold to reach, including stance leg and swing leg.
+  ROS_WARN_STREAM("the number of foothold to reach: " << nFeet << std::endl);
+  MatrixXd A = MatrixXd::Zero(nDimensions_ * nFeet, nStates_);// eric_wang: Initialize matrix with its size.
   VectorXd b = VectorXd::Zero(nDimensions_ * nFeet);
-  Matrix3d R = RotationMatrix(pose.getRotation()).matrix();
+  Matrix3d R = RotationMatrix(pose.getRotation()).matrix();// eric_wang: Rotation matrix between world frame and base frame.
   std::cout<<"QP optimization stance :"<<stance_<<std::endl;
   unsigned int i = 0;
   for (const auto& footPosition : stance_) {
-    A.block(nDimensions_ * i, 0, nStates_, A.cols()) << Matrix3d::Identity();
-    b.segment(nDimensions_ * i, nDimensions_) << footPosition.second.vector() - R * nominalStanceInBaseFrame_[footPosition.first].vector();
+    A.block(nDimensions_ * i, 0, nStates_, A.cols()) << Matrix3d::Identity(); // 12 X 3 matrix.
+    b.segment(nDimensions_ * i, nDimensions_) << footPosition.second.vector() - R * nominalStanceInBaseFrame_[footPosition.first].vector();// 12 x 1 vecotr.
     ++i;
   }
 
@@ -76,11 +78,13 @@ bool PoseOptimizationQP::optimize(Pose& pose)
   // Inequality constraints.
   Eigen::MatrixXd G;
   Eigen::VectorXd hp;
+  // Convert polygon to inequality constraints which most tightly contain the points, The inequality constraints are represented as A and b,
+  // a set of constraints such that A*x <= b defining the region of space enclosing the convex hull. A = G, hp = b;
   supportRegion_.convertToInequalityConstraints(G, hp);
   grid_map::Polygon supportRegionCopy(supportRegion_);
 //  supportRegionCopy.offsetInward(0.01);
 //  supportRegionCopy.convertToInequalityConstraints(G, hp);
-  Eigen::VectorXd h = hp - G * (R * centerOfMassInBaseFrame.vector()).head(2);
+  Eigen::VectorXd h = hp - G * (R * centerOfMassInBaseFrame.vector()).head(2);// eric_wang: bsp - Asp * rcom
   G.conservativeResize(Eigen::NoChange,3); // Add column corresponding to Z position
   G.col(2).setZero(); // No constraints in Z position
 
@@ -88,10 +92,10 @@ bool PoseOptimizationQP::optimize(Pose& pose)
 //  std::cout << "hp: " << std::endl << hp << std::endl;
 //  std::cout << "h: " << std::endl << h << std::endl;
 
-  // Formulation as QP:
+  // Formulation as QP question:
   // min 1/2 x'Px + q'x + r
-  Eigen::MatrixXd P = 2 * A.transpose() * A;
-  Eigen::VectorXd q = -2 * A.transpose() * b;
+  Eigen::MatrixXd P = 2 * A.transpose() * A; //! eric_wang: Hessian matrix.
+  Eigen::VectorXd q = -2 * A.transpose() * b; //! eric_wang: Linear term.
 
 //  MatrixXd r = b.transpose() * b; // Not used.
 
@@ -137,7 +141,10 @@ bool PoseOptimizationQP::optimize(Pose& pose)
   Eigen::VectorXd params(P.cols());
   params = pose.getPosition().vector();
   if (!solver_->minimize(*costFunction, *constraints, params)) return false;
+
+
   // Return optimized pose.
+  ROS_WARN("Pose optimization QP running");
   std::cout << "quadratic solution is : " << std::endl << params << std::endl;
   pose.getPosition().vector() = params;
   std::cout<<"Check constraints :"<<"Gx<=h"<<std::endl<<G*params<<" ? "<<h<<std::endl;

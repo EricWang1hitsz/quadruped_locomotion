@@ -96,14 +96,18 @@ bool BaseAuto::prepareComputation(const State& state, const Step& step, const St
       return false;
     }
   }
-  std::cout<<"computed height is "<<*height_<<std::endl;
+  ROS_WARN("Base Auto:: prepare computation running");
+  std::cout<<"Base Auto::compute: Computed height is "<<*height_<<std::endl;
   if (!generateFootholdLists(state, step, queue, adapter)) {
-    std::cerr << "BaseAuto::compute: Could not generate foothold lists." << std::endl;
+    std::cerr << "Base Auto::compute: Could not generate foothold lists." << std::endl;
     return false;
   }
-  std::cout<<"footholds To Reach is "<<footholdsToReach_<<std::endl;
-  std::cout<<"footholds Stance is "<<footholdsInSupport_<<std::endl;
-  std::cout<<"footholds Nominal Stance is "<<nominalStanceInBaseFrame_<<std::endl;
+  //------------------------------------------------------------------------------------------
+  //! Question foothold to reach of swing leg is different from the generated foothold before?
+  //-------------------------------------------------------------------------------------------
+  std::cout<<"footholds To Reach in world frame is "<<footholdsToReach_<<std::endl;
+  std::cout<<"footholds Stance in world frame is "<<footholdsInSupport_<<std::endl;
+  std::cout<<"footholds Nominal Stance in base frame is "<<nominalStanceInBaseFrame_<<std::endl;
 
   // Define support region.
   grid_map::Polygon supportRegion;
@@ -111,7 +115,7 @@ bool BaseAuto::prepareComputation(const State& state, const Step& step, const St
   getFootholdsCounterClockwiseOrdered(footholdsInSupport_, footholdsOrdered);
 
   for (auto foothold : footholdsOrdered) {
-    supportRegion.addVertex(foothold.vector().head<2>());
+      supportRegion.addVertex(foothold.vector().head<2>());// eric_wang: Get the first 2 elements fo the vector.
     std::cout<<"footholds ordered is "<<foothold.vector().head<2>()<<std::endl;
   }
   bool isLinePolygon = false;
@@ -176,7 +180,8 @@ bool BaseAuto::prepareComputation(const State& state, const Step& step, const St
     }
     if (!tolerateFailingOptimization_) return false;
   }
-
+  // TODO(EricWang): Test.
+    ROS_WARN("Finish base auto optimization!");
   computeDuration(state, step, adapter);
   computeTrajectory();
 
@@ -332,10 +337,14 @@ bool BaseAuto::generateFootholdLists(const State& state, const Step& step, const
   if (!step.hasLegMotion() && queue.size() > 1) {
     if (queue.getNextStep().hasLegMotion()) prepareForNextStep = true;
   }
-  //! WSHY: if there are next step,
+  //----------------------------------------------------------
+  //! (EricWang) Set leg is suppot leg or swing leg.
+  //----------------------------------------------------------
+  //! eric_wang: if has leg motion in the next step.
   if (prepareForNextStep) {
     // Auto motion for preparation of next step.
     for (const auto& limb : adapter.getLimbs()) {
+        // eric_wang: a step contains 4 legs.
       if (!state.isIgnoreContact(limb) && !queue.getNextStep().hasLegMotion(limb)) {
           //! WSHY:set support footholds as the foot without motion at next step
         footholdsInSupport_[limb] = adapter.getPositionWorldToFootInWorldFrame(limb);
@@ -354,9 +363,13 @@ bool BaseAuto::generateFootholdLists(const State& state, const Step& step, const
     }
   }
 
+  //----------------------------------------------------------
+  //! (EricWang)
+  //----------------------------------------------------------
   footholdsToReach_.clear();
   for (const auto& limb : adapter.getLimbs()) {
     if (step.hasLegMotion(limb)) {
+        //!eric_wang: if limb is swing leg.
       if (step.getLegMotion(limb).isIgnoreForPoseAdaptation()) continue;
       // Double check if right format.
       if (step.getLegMotion(limb).getTrajectoryType() == LegMotionBase::TrajectoryType::EndEffector
@@ -370,8 +383,11 @@ bool BaseAuto::generateFootholdLists(const State& state, const Step& step, const
       else {
         return false;
       }
-    } else {
+    }
+    else {
+        //! eric_wang: if limb is supported leg.
 //      std::cout<<"Use current foot position."<<std::endl;
+        // eric_wang: Not ignore for pose adaptation.
       if (!state.isIgnoreForPoseAdaptation(limb)) {
         footholdsToReach_[limb] = adapter.getPositionWorldToFootInWorldFrame(limb);
       }

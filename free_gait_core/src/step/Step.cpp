@@ -98,7 +98,7 @@ std::unique_ptr<Step> Step::clone() const
   std::unique_ptr<Step> pointer(new Step(*this));
   return pointer;
 }
-/**gggggggggg
+/**
  * @brief Step::addLegMotion, add a LegMotionBase class to legMotions_ unorder map data type
  * @param legMotion test the stom
  */
@@ -158,17 +158,9 @@ bool Step::needsComputation() const
 /**
  * @brief Step::compute, call the compute method in legMotions_ and baseMotion
  * @return true if successed
- * 1 unordered_map<Key,T>::iterator it;
-2 (*it).first;             // the key value (of type Key)
-3 (*it).second;            // the mapped value (of type T), legmotions is a class of legmotion
-4 (*it);                   // the "element value" (of type pair<const Key,T>)
-https://www.cnblogs.com/evidd/p/8823092.html
 */
 bool Step::compute()
 {
-  /**
-    bianli legMotions_
-    */
   for (const auto& legMotion : legMotions_) {
     if (legMotion.second->needsComputation()) {
       if (!legMotion.second->compute()) return false;

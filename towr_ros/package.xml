@@ -31,6 +31,8 @@
   <depend>xpp_msgs</depend>
   <depend>towr_catkin</depend>
   <depend>free_gait_msgs</depend>
+  <depend>free_gait_core</depend>
+
   
   <exec_depend>xterm</exec_depend>
   <exec_depend>xpp_hyq</exec_depend>

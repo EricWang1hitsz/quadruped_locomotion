@@ -119,6 +119,7 @@ bool PoseOptimizationSQP::optimize(Pose& pose)
 
   outfile_<<solver.getIterationTimes()<<", "<<timer_.getAverageElapsedTimeUSec("total")<<"\r\n";
 //  nIterations_ = ;
+  ROS_WARN("Pose optimization SQP running");
   std::cout<<"Total Time Cost For SQP :"<<timer_.getAverageElapsedTimeUSec("total")<<"us"<<std::endl;
   EulerAnglesZyx eular_zyx(pose.getRotation());
   std::cout<<"Pose Optiazation SQP solve result:"<<std::endl<<pose.getPosition()<<std::endl<<

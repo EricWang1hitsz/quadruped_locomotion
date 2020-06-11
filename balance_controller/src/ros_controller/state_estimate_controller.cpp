@@ -162,7 +162,7 @@ bool StateEstimateController::init(hardware_interface::RobotStateInterface* hard
     robot_state_.lh_leg_mode.name = "LH_LEG";
     robot_state_.lh_leg_mode.surface_normal = vector_z;
 
-
+    ROS_INFO("State estimate controller initialized");
   }
 
 void StateEstimateController::update(const ros::Time& time, const ros::Duration& period)

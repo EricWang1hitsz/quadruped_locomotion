@@ -7,6 +7,7 @@ project(balance_controller)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   qp_solver
   roscpp
@@ -31,6 +32,7 @@ find_package(catkin REQUIRED COMPONENTS
   single_leg_test
   ros_ethercat_driver
   dynamic_reconfigure
+  dwl_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -125,6 +127,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
+  ${EIGEN3_INCLUDE_DIR}
   LIBRARIES balance_controller gazebo_state_hardware_interface robot_state_gazebo_ros_control_plugin
   CATKIN_DEPENDS
   qp_solver
@@ -159,6 +162,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
@@ -182,6 +186,11 @@ add_library(ros_balance_controller
   src/ros_controller/ros_balance_controller.cpp
   )
 target_link_libraries(ros_balance_controller balance_controller ${catkin_LIBRARIES})
+
+#add_library(whole_body_controller
+#  src/ros_controller/whole_body_controller.cpp
+#  )
+#target_link_libraries(whole_body_controller balance_controller ${catkin_LIBRARIES})
 
 add_library(robot_state_gazebo_ros_control_plugin
     src/ros_controller/robot_state_gazebo_ros_control_plugin.cpp
@@ -222,6 +231,7 @@ target_link_libraries(state_estimate_controller
 # add_executable(${PROJECT_NAME}_node src/balance_controller_node.cpp)
 add_executable(balance_controller_test_node test/test.cpp)
 add_executable(balance_controller_manager src/ros_controller/balance_controller_manager.cpp)
+#add_executable(whole_body_controller_test test/whole_body_controller_test.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -244,6 +254,11 @@ target_link_libraries(balance_controller_manager
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
   )
+#target_link_libraries(whole_body_controller_test
+#    whole_body_controller
+#    ${PROJECT_NAME}
+#    ${catkin_LIBRARIES}
+#  )
 
 #############
 ## Install ##

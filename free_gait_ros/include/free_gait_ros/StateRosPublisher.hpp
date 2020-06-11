@@ -43,6 +43,7 @@ class StateRosPublisher
   std::unique_ptr<robot_state_publisher::RobotStatePublisher> robotStatePublisher_;
   AdapterBase& adapter_;
   tf2_ros::TransformBroadcaster tfBroadcaster_;
+  //! eric_wang: Publish desired robot state to the controller.
   ros::Publisher robot_state_pub_, stance_marker_pub_;
   free_gait_msgs::RobotState robot_state_;
 };

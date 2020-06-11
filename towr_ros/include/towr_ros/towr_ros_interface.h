@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ifopt/ipopt_solver.h>
 
 #include "free_gait_msgs/RobotState.h"
+#include "free_gait_core/executor/State.hpp"
 
 namespace towr {
 
@@ -100,8 +101,9 @@ private:
   SplineHolder solution; ///< the solution splines linked to the opt-variables.
   ifopt::Problem nlp_;   ///< the actual nonlinear program to be solved.
   double visualization_dt_; ///< duration between two rviz visualization states.
+  free_gait_msgs::RobotState robot_state_;
 
-
+  rosbag::Bag ros_bag;
 
   ros::Subscriber user_command_sub_;
   ros::Publisher initial_state_pub_;
@@ -110,9 +112,14 @@ private:
   ros::Publisher ee_motion_pub_;
   ros::Subscriber initial_state_sub_;
 
+  // publish trajectory to the controller.
+  ros::Publisher trajectory_pub_;
+  void PublishTrajectoryToController();
+
   void UserCommandCallback(const TowrCommandMsg& msg);
   void InitialStateCallback(const free_gait_msgs::RobotStateConstPtr& robot_state_msg);
   XppVec GetTrajectory() const;
+
   BaseState GetInitialState(const free_gait_msgs::RobotStateConstPtr& robot_state_msg);
   virtual BaseState GetGoalState(const TowrCommandMsg& msg) const;
   void PublishInitialState();

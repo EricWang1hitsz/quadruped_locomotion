@@ -24,6 +24,11 @@ public:
   QuadrupedState();
   ~QuadrupedState();
 //  QuadrupedState(const QuadrupedState& other);
+  /**
+   * @brief Initialize Set the initial quadruped in Gazebo.
+   * @author eric wang.
+   * @return True.
+   */
   bool Initialize();
   const Position getPositionWorldToBaseInWorldFrame() const;
   const RotationQuaternion getOrientationBaseToWorld() const;

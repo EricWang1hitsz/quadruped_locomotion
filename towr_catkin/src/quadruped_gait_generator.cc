@@ -84,6 +84,11 @@ QuadrupedGaitGenerator::SetCombo (Combos combo)
     case C2: SetGaits({Stand, Run3, Run3, Run3, Run3E, Stand}); break; // pace
     case C3: SetGaits({Stand, Hop1, Hop1, Hop1, Hop1E, Stand}); break; // bound
     case C4: SetGaits({Stand, Hop3, Hop3, Hop3, Hop3E, Stand}); break; // gallop
+    case C5: SetGaits({Stand, Stand}); break; // stand
+    case C6: SetGaits({Stand, Crawl, Stand}); break; // crawl
+    case C7: SetGaits({Stand, Crawl, Crawl, Stand}); break;
+    case C8: SetGaits({Run1, Run1}); break; // Tort
+//    case C8: SetGaits({Stand, Lift, Stand}); break; // LF leg lift.
     default: assert(false); std::cout << "Gait not defined\n"; break;
   }
 }
@@ -108,6 +113,8 @@ QuadrupedGaitGenerator::GetGait(Gaits gait) const
     case Hop3:    return GetStrideGallop();
     case Hop3E:   return RemoveTransition(GetStrideGallop());
     case Hop5:    return GetStrideLimp();
+    case Crawl:   return GetStrideCrawl();
+    case Lift:    return GetStrideLift();
     default: assert(false); // gait not implemented
   }
 }
@@ -117,7 +124,7 @@ QuadrupedGaitGenerator::GetStrideStand () const
 {
   auto times =
   {
-      0.3,
+      0.5, //0.3,
   };
   auto contacts =
   {
@@ -208,8 +215,8 @@ QuadrupedGaitGenerator::GetStrideWalkOverlap () const
 QuadrupedGaitGenerator::GaitInfo
 QuadrupedGaitGenerator::GetStrideTrot () const
 {
-  double t_step = 0.3;
-  double t_stand = 0.2;
+  double t_step = 0.8; //0.3;
+  double t_stand = 0.5; //0.2;
   auto times =
   {
       t_step, t_stand, t_step, t_stand,
@@ -365,6 +372,47 @@ QuadrupedGaitGenerator::GetStrideLimp () const
   };
 
   return std::make_pair(times, phase_contacts);
+}
+
+//! eric_wang: TEST t_stand 0.5s t_crawl 1.2s perfect.
+QuadrupedGaitGenerator::GaitInfo
+QuadrupedGaitGenerator::GetStrideCrawl() const
+{
+    double t_stand = 0.5;
+    double t_crawl = 1.0;
+    auto times =
+    {
+        t_crawl, t_stand,
+        t_crawl, t_stand,
+        t_crawl, t_stand,
+        t_crawl, t_stand
+    };
+    auto phase_contacts =
+    {
+        Bb_, BB_, // LF swing
+        PB_, BB_, // RH swing
+        BP_, BB_, // RF swing
+        bB_, BB_, // LH swing
+    };
+
+    return std::make_pair(times, phase_contacts);
+}
+
+QuadrupedGaitGenerator::GaitInfo
+QuadrupedGaitGenerator::GetStrideLift() const
+{
+    double t_lift = 3;
+    double t_stand = 1;
+    auto times =
+    {
+        t_lift, t_stand
+    };
+    auto phase_contacts =
+    {
+        Bb_,
+    };
+
+    return std::make_pair(times, phase_contacts);
 }
 
 } /* namespace towr */

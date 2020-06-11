@@ -115,6 +115,20 @@ const visualization_msgs::MarkerArray RosVisualization::getComWithProjectionMark
   return markerArray;
 }
 
+const geometry_msgs::PoseArray RosVisualization::getBasePoseArray(const Pose &basePose, const std::string &frameId)
+{
+    geometry_msgs::PoseArray poses;
+    geometry_msgs::Pose pose;
+
+    poses.header.frame_id = frameId;
+    poses.header.stamp = ros::Time::now();
+    kindr_ros::convertToRosGeometryMsg(basePose, pose);
+
+    poses.poses.push_back(pose);
+
+    return poses;
+}
+
 const std::string RosVisualization::getFootName(const LimbEnum& limb)
 {
   if(limb == LimbEnum::LF_LEG)

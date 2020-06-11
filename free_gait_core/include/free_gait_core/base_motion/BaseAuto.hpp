@@ -118,6 +118,7 @@ class BaseAuto : public BaseMotionBase
   Pose start_; // In world frame.
   Pose target_; // In world frame.
   double duration_;
+  // typedef std::unordered_map<LimbEnum, Position2, EnumClassHash> PlanarStance
   PlanarStance nominalPlanarStanceInBaseFrame_;
 
   ControlSetup controlSetup_;
@@ -126,7 +127,7 @@ class BaseAuto : public BaseMotionBase
   curves::CubicHermiteSE3Curve trajectory_;
 
   // In world frame.
-  //typedef std::unordered_map<LimbEnum, Position, EnumClassHash> Stance;
+  // typedef std::unordered_map<LimbEnum, Position, EnumClassHash> Stance;
   Stance footholdsToReach_, footholdsInSupport_, footholdsForOrientation_, footholdsOfNextLegMotion_;
   // In base frame.  
   Stance nominalStanceInBaseFrame_;

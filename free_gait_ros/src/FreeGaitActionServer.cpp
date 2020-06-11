@@ -133,6 +133,7 @@ void FreeGaitActionServer::goalCallback()
   }
   executor_.setPreemptionType(preemptionType);
   nStepsInCurrentGoal_ = goal->steps.size();
+  ROS_WARN_STREAM("number of step in current goal: " << nStepsInCurrentGoal_ << std::endl);
   isPreempting_ = false;
   lock.unlock();
 }

@@ -28,6 +28,8 @@ rqt_control_panel_plugin_widget::rqt_control_panel_plugin_widget(const ros::Node
 
   crawlSwitchClient_ = nodehandle_.serviceClient<std_srvs::SetBool>("crawl_switch",false);
 
+  towrSwitchClient_ = nodehandle_.serviceClient<std_srvs::SetBool>("towr_switch", false);
+
   eStopPublisher_ = nodehandle_.advertise<std_msgs::Bool>("/e_stop", 1);
 
   baseVelocityCommandPublisher_ = nodehandle_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
@@ -544,4 +546,15 @@ void rqt_control_panel_plugin_widget::on_crawlButton_clicked()
     {
       displayOutputInfos("green", "Starting Crawling......");
     }
+}
+
+void rqt_control_panel_plugin_widget::on_towrButton_clicked()
+{
+    std_srvs::SetBool towr_switch;
+    towr_switch.request.data = true;
+    towrSwitchClient_.call(towr_switch.request, towr_switch.response);
+    if(towr_switch.response.success)
+      {
+        displayOutputInfos("green", "Starting Towr");
+      }
 }

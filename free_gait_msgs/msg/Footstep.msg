@@ -29,3 +29,5 @@ geometry_msgs/Vector3Stamped surface_normal
 # If pose adaptation should ignore this leg motion.
 # Default is false.
 bool ignore_for_pose_adaptation
+
+# eric Pose adaptation by three legs if one leg is ignore.

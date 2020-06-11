@@ -89,7 +89,7 @@ SingleRigidBodyDynamics::GetDynamicViolation () const
 
   // express inertia matrix in world frame based on current body orientation
   Jac I_w = w_R_b_.sparseView() * I_b * w_R_b_.transpose().sparseView();
-
+  // using BaseAcc  = Eigen::Matrix<double,6,1>;
   BaseAcc acc;
   acc.segment(AX, k3D) = I_w*omega_dot_
                          + Cross(omega_)*(I_w*omega_)
@@ -107,6 +107,7 @@ SingleRigidBodyDynamics::GetJacobianWrtBaseLin (const Jac& jac_pos_base_lin,
   // build the com jacobian
   int n = jac_pos_base_lin.cols();
 
+  // using Jac = Eigen::SparseMatrix<double, Eigen::RowMajor>;
   Jac jac_tau_sum(k3D, n);
   for (const Vector3d& f : ee_force_) {
     Jac jac_tau = Cross(f)*jac_pos_base_lin;

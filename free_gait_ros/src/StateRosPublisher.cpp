@@ -73,7 +73,7 @@ bool StateRosPublisher::initializeRobotStatePublisher()
   }
 
   robotStatePublisher_.reset(new robot_state_publisher::RobotStatePublisher(tree));
-
+  //! eric_wang: Publish desired robot state to the balance controller.
   robot_state_pub_ = nodeHandle_.advertise<free_gait_msgs::RobotState>("/desired_robot_state", 1);
   stance_marker_pub_ = nodeHandle_.advertise<visualization_msgs::MarkerArray>("optimized_footholds",1);
 
@@ -152,7 +152,7 @@ bool StateRosPublisher::publish(const State& state)
   kindr_ros::convertToRosGeometryMsg(Pose(Position(state.getTargetPositionWorldToBaseInWorldFrame()),
                                           RotationQuaternion(state.getTargetOrientationBaseToWorld())),
                                      robot_state_.base_pose.pose.pose);
-  std::cout<<state.getTargetOrientationBaseToWorld()<<std::endl;
+  std::cout<< "Base target orientation:" <<state.getTargetOrientationBaseToWorld()<<std::endl;
   kindr_ros::convertToRosGeometryMsg(Twist(LinearVelocity(state.getTargetLinearVelocityBaseInWorldFrame()),
                                            LocalAngularVelocity(state.getTargetAngularVelocityBaseInBaseFrame())),
                                      robot_state_.base_pose.twist.twist);

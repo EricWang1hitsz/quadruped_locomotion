@@ -43,6 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <geometry_msgs/PoseArray.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseWithCovariance.h>
 
 
 namespace towr {
@@ -68,10 +70,36 @@ TowrRosInterface::TowrRosInterface ()
   base_pose_pub_ = n.advertise<geometry_msgs::PoseArray>("base_pose", 1);
 
   ee_motion_pub_ = n.advertise<visualization_msgs::Marker>("ee_motion", 1);
+  // publish desired robot state to the controller.
+  // trajectory_pub_ = n.advertise<free_gait_msgs::RobotState>("towr_trajectory", 1);
+  trajectory_pub_ = n.advertise<free_gait_msgs::RobotState>("/desired_robot_state", 1);
 
   solver_ = std::make_shared<ifopt::IpoptSolver>();
 
+  // TODO(EricWang): seems that it is too big.
   visualization_dt_ = 0.01;
+
+  // why error if not resize?
+  robot_state_.lf_leg_joints.position.resize(3);
+  robot_state_.rf_leg_joints.position.resize(3);
+  robot_state_.rh_leg_joints.position.resize(3);
+  robot_state_.lh_leg_joints.position.resize(3);
+
+  robot_state_.lf_target.target_position.resize(1);
+  robot_state_.lf_target.target_velocity.resize(1);
+  robot_state_.lf_target.target_acceleration.resize(1);
+
+  robot_state_.rf_target.target_position.resize(1);
+  robot_state_.rf_target.target_velocity.resize(1);
+  robot_state_.rf_target.target_acceleration.resize(1);
+
+  robot_state_.rh_target.target_position.resize(1);
+  robot_state_.rh_target.target_velocity.resize(1);
+  robot_state_.rh_target.target_acceleration.resize(1);
+
+  robot_state_.lh_target.target_position.resize(1);
+  robot_state_.lh_target.target_velocity.resize(1);
+  robot_state_.lh_target.target_acceleration.resize(1);
 }
 
 
@@ -88,7 +116,7 @@ BaseState TowrRosInterface::GetInitialState(const free_gait_msgs::RobotStateCons
     BaseState initial_state;
     initial_state.lin.at(kPos).x() = robot_state_msg->base_pose.pose.pose.position.x;
     initial_state.lin.at(kPos).y() = robot_state_msg->base_pose.pose.pose.position.y;
-    initial_state.lin.at(kPos).z() = 0.52;//robot_state_msg->base_pose.pose.pose.position.z;
+    initial_state.lin.at(kPos).z() = robot_state_msg->base_pose.pose.pose.position.z; // 0.52
 //    ROS_INFO_STREAM("Initial base pose" << initial_state.lin.at(kPos).x() << initial_state.lin.at(kPos).y() << std::endl);
 
     tf::Quaternion quaternion;
@@ -132,6 +160,10 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
   int n_ee = formulation_.model_.kinematic_model_->GetNumberOfEndeffectors();
   formulation_.params_ = GetTowrParameters(n_ee, msg);//! eric_wang: quadruped gait generator.
   formulation_.final_base_ = GetGoalState(msg);
+//  //! eric_wang:
+//  formulation_.final_base_.lin.at(kPos).x() = 0.0;
+//  formulation_.final_base_.lin.at(kPos).y() = 0.0;
+//  formulation_.final_base_.lin.at(kPos).z() = 0.8;
 
   SetTowrInitialState();//! eric_wang: Add intialized base pos and nominal stance into formulation.
 
@@ -193,6 +225,12 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
     }
     base_pose_pub_.publish(Pose_);
 
+
+     // to publish entire trajectory (e.g. to send to controller)
+     xpp_msgs::RobotStateCartesianTrajectory xpp_msg = xpp::Convert::ToRos(GetTrajectory());
+
+     PublishTrajectoryToController();
+
     SaveOptimizationAsRosbag(bag_file, robot_params_msg, msg, false);
   }
 
@@ -214,12 +252,12 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
     int success = system(("killall rqt_bag; rqt_bag " + bag_file + "&").c_str());
   }
 
-  // TODO(EricWang): Send to free_gait for tracking.
   // to publish entire trajectory (e.g. to send to controller)
 //   xpp_msgs::RobotStateCartesianTrajectory xpp_msg = xpp::Convert::ToRos(GetTrajectory());
 
   // Prints the variables, costs and constraints.
-  nlp_.PrintCurrent();
+//  nlp_.PrintCurrent();
+
 }
 
 void
@@ -265,7 +303,7 @@ TowrRosInterface::GetTrajectory () const
   while (t<=T+1e-5) {
     int n_ee = solution.ee_motion_.size();
     xpp::RobotStateCartesian state(n_ee);
-
+    // Converts class "State" between two domains (have same internal representation).
     state.base_.lin = ToXpp(solution.base_linear_->GetPoint(t));
 
     state.base_.ang.q  = base_angular.GetQuaternionBaseToWorld(t);
@@ -286,6 +324,185 @@ TowrRosInterface::GetTrajectory () const
   }
 
   return trajectory;
+}
+
+void TowrRosInterface::PublishTrajectoryToController()
+{
+    geometry_msgs::Vector3 surface_normal;
+    surface_normal.x = 0.00;
+    surface_normal.y = 0.00;
+    surface_normal.z = 1.00;
+    // Defaults to /home/user/.ros/
+    std::string pathToBag = "test.bag";
+    // std::string topic_name = "towr_trajectory";
+    std::string topic_name = "/desired_robot_state";
+
+    ros_bag.open(pathToBag, rosbag::bagmode::Write);
+
+    double t = 0.0;
+    double T = solution.base_linear_->GetTotalTime();
+
+    EulerConverter base_angular(solution.base_angular_);
+
+    while (t<=T+1e-5) {
+      int n_ee = solution.ee_motion_.size();
+      xpp::RobotStateCartesian state(n_ee);
+      // Converts class "State" between two domains (have same internal representation).
+      state.base_.lin = ToXpp(solution.base_linear_->GetPoint(t));
+
+      state.base_.ang.q  = base_angular.GetQuaternionBaseToWorld(t);
+      state.base_.ang.w  = base_angular.GetAngularVelocityInWorld(t);
+      state.base_.ang.wd = base_angular.GetAngularAccelerationInWorld(t);
+
+      for (int ee_towr=0; ee_towr<n_ee; ++ee_towr) {
+        int ee_xpp = ToXppEndeffector(n_ee, ee_towr).first;
+        // std::cout << "Endeffector ID in xpp:" << ee_xpp << std::endl;  //<< 0 1 2 3.
+        state.ee_contact_.at(ee_xpp) = solution.phase_durations_.at(ee_towr)->IsContactPhase(t);
+        state.ee_motion_.at(ee_xpp)  = ToXpp(solution.ee_motion_.at(ee_towr)->GetPoint(t));
+        state.ee_forces_ .at(ee_xpp) = solution.ee_force_.at(ee_towr)->GetPoint(t).p();
+
+      }
+
+      state.t_global_ = t;
+      auto timestamp = ros::Time(state.t_global_ + 1e-6);
+      t += visualization_dt_;
+
+      xpp_msgs::RobotStateCartesian robot_state_msgs;
+      robot_state_msgs = xpp::Convert::ToRos(state);
+
+      // convert from xpp_msg to free_gait_msgs.
+      // base pose.
+      robot_state_.base_pose.pose.pose = robot_state_msgs.base.pose; // geometry_msgs/Pose.
+      robot_state_.base_pose.twist.twist = robot_state_msgs.base.twist; // geometry_msgs/Twist.
+
+      for(int ee_towr = 0; ee_towr < n_ee; ++ee_towr)
+      {
+          int ee_xpp = ToXppEndeffector(n_ee, ee_towr).first;
+          // leg mode and end effector target.
+          if(ee_xpp == 0) // LF leg
+          {
+              robot_state_.lf_target.target_position[0].point.x = robot_state_msgs.ee_motion.at(ee_xpp).pos.x;
+              robot_state_.lf_target.target_position[0].point.y = robot_state_msgs.ee_motion.at(ee_xpp).pos.y;
+              double lf_height = robot_state_msgs.base.pose.position.z;
+              robot_state_.lf_target.target_position[0].point.z = robot_state_msgs.ee_motion.at(ee_xpp).pos.z - lf_height - 0.005;
+//              robot_state_.lf_target.target_acceleration[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).acc;
+
+              if(state.ee_contact_.at(ee_xpp)) // support leg
+              {
+                  robot_state_.lf_leg_mode.support_leg = true;
+                  robot_state_.lf_leg_mode.name = "footstep";//"cartesian";
+                  robot_state_.lf_leg_mode.surface_normal.vector = surface_normal; // [0 0 1]
+                  robot_state_.lf_leg_mode.phase = 0;
+//                  robot_state_.lf_target.target_position[0].point.z = robot_state_msgs.ee_motion.at(ee_xpp).pos.z - 0.54;
+              }
+              else // non-support leg
+              {
+                  robot_state_.lf_leg_mode.support_leg = false;
+                  robot_state_.lf_leg_mode.name = "footstep"; //"cartesian";
+//                  ROS_INFO_STREAM("lf target:" << robot_state_msgs.ee_motion[ee_xpp] << ee_xpp <<std::endl);
+//                  ROS_INFO_STREAM("lf velocity:" << robot_state_.lf_target.target_velocity[0].vector << std::endl);
+//                  robot_state_.lf_target.target_position[0].point = robot_state_msgs.ee_motion.at(ee_xpp).pos;
+//                  robot_state_.lf_target.target_velocity[0].vector = robot_state_msgs.ee_motion[ee_xpp].vel;
+//                  robot_state_.lf_target.target_acceleration[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).acc;
+//                  robot_state_.lf_target.target_position[0].point.z = robot_state_msgs.ee_motion.at(ee_xpp).pos.z - 0.4;
+                  robot_state_.lf_target.target_velocity[0].vector = robot_state_msgs.ee_motion[ee_xpp].vel;
+                  robot_state_.lf_target.target_acceleration[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).acc;
+
+              }
+          }
+
+          if(ee_xpp == 1) // RF leg
+          {
+              robot_state_.rf_target.target_position[0].point.x = robot_state_msgs.ee_motion.at(ee_xpp).pos.x;
+              robot_state_.rf_target.target_position[0].point.y = robot_state_msgs.ee_motion.at(ee_xpp).pos.y;
+              //! eric_wang: foot position here is under world frame, but in controller it is under base_link frame;
+              double rf_height = robot_state_msgs.base.pose.position.z;
+              robot_state_.rf_target.target_position[0].point.z = robot_state_msgs.ee_motion.at(ee_xpp).pos.z - rf_height - 0.005;
+              robot_state_.rf_target.target_velocity[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).vel;
+              robot_state_.rf_target.target_acceleration[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).acc;
+
+              if(state.ee_contact_.at(ee_xpp))
+              {
+                  robot_state_.rf_leg_mode.support_leg = true;
+                  robot_state_.rf_leg_mode.name = "footstep";
+                  robot_state_.rf_leg_mode.surface_normal.vector = surface_normal;
+                  robot_state_.rf_leg_mode.phase = 0;
+              }
+
+              else
+              {
+                  robot_state_.rf_leg_mode.support_leg = false;
+                  robot_state_.rf_leg_mode.name = "footstep";
+//                  robot_state_.rf_target.target_position[0].point = robot_state_msgs.ee_motion.at(ee_xpp).pos;
+//                  robot_state_.rf_target.target_velocity[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).vel;
+//                  robot_state_.rf_target.target_acceleration[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).acc;
+
+              }
+          }
+
+          if(ee_xpp == 2) // LH leg
+          {
+              robot_state_.lh_target.target_position[0].point.x = robot_state_msgs.ee_motion.at(ee_xpp).pos.x;
+              robot_state_.lh_target.target_position[0].point.y = robot_state_msgs.ee_motion.at(ee_xpp).pos.y;
+              double lh_height = robot_state_msgs.base.pose.position.z;
+              robot_state_.lh_target.target_position[0].point.z = robot_state_msgs.ee_motion.at(ee_xpp).pos.z - lh_height - 0.005;
+              robot_state_.lh_target.target_velocity[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).vel;
+              robot_state_.lh_target.target_acceleration[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).acc;
+
+              if(state.ee_contact_.at(ee_xpp))
+              {
+                  robot_state_.lh_leg_mode.support_leg = true;
+                  robot_state_.lh_leg_mode.name = "footstep";
+                  robot_state_.lh_leg_mode.surface_normal.vector = surface_normal;
+                  robot_state_.lh_leg_mode.phase = 0;
+              }
+
+              else
+              {
+                  robot_state_.lh_leg_mode.support_leg = false;
+                  robot_state_.lh_leg_mode.name = "footstep";
+//                  robot_state_.lh_target.target_position[0].point = robot_state_msgs.ee_motion.at(ee_xpp).pos;
+//                  robot_state_.lh_target.target_velocity[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).vel;
+//                  robot_state_.lh_target.target_acceleration[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).acc;
+
+              }
+          }
+
+          if(ee_xpp == 3) // RH leg
+          {
+              robot_state_.rh_target.target_position[0].point.x = robot_state_msgs.ee_motion.at(ee_xpp).pos.x;
+              robot_state_.rh_target.target_position[0].point.y = robot_state_msgs.ee_motion.at(ee_xpp).pos.y;
+              double rh_height = robot_state_msgs.base.pose.position.z;
+              robot_state_.rh_target.target_position[0].point.z = robot_state_msgs.ee_motion.at(ee_xpp).pos.z - rh_height - 0.005;
+              robot_state_.rh_target.target_velocity[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).vel;
+              robot_state_.rh_target.target_acceleration[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).acc;
+
+              if(state.ee_contact_.at(ee_xpp))
+              {
+                  robot_state_.rh_leg_mode.support_leg = true;
+                  robot_state_.rh_leg_mode.name = "footstep";
+                  robot_state_.rh_leg_mode.surface_normal.vector = surface_normal;
+                  robot_state_.rh_leg_mode.phase = 0;
+
+              }
+
+              else
+              {
+                  robot_state_.rh_leg_mode.support_leg = false;
+                  robot_state_.rh_leg_mode.name = "footstep";
+//                  robot_state_.rh_target.target_position[0].point = robot_state_msgs.ee_motion.at(ee_xpp).pos;
+//                  robot_state_.rh_target.target_velocity[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).vel;
+//                  robot_state_.rh_target.target_acceleration[0].vector = robot_state_msgs.ee_motion.at(ee_xpp).acc;
+
+              }
+          }
+
+
+    }
+      trajectory_pub_.publish(robot_state_);
+      ros_bag.write(topic_name, timestamp, robot_state_);
+    }
+
 }
 
 xpp_msgs::RobotParameters

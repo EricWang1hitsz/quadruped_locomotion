@@ -46,6 +46,15 @@ public:
   typedef std::unordered_map<free_gait::LimbEnum, phase, EnumClassHash> LimbPhase;
 
   GaitGenerateClient(const ros::NodeHandle& node_handle);
+
+  /**
+   * @author eric wang
+   * @brief GaitGenerateClient For test use, without run simulation.
+   * @param node_handle
+   * @param test
+   */
+  GaitGenerateClient(const ros::NodeHandle& node_handle, bool test);
+
   ~GaitGenerateClient();
 
   void initialize();
@@ -67,12 +76,33 @@ public:
 
   void activeCallback();
 
+  /**
+   * @author eric wang
+   * @brief copyRobotState Get robot state from adapter_ros_.
+   * @param state all robot state.
+   * @return return footprint in world frame and visualize base CoM marker and leg support region.
+   */
   bool copyRobotState(const free_gait::State& state);
 
   bool generateFootHolds(std::string frame);
 
+  /**
+   * @author eric wang
+   * @brief footstepGeneration
+   * @return multi footstp.
+   */
+  bool footstepGeneration();
+  /**
+   * @author eric wang
+   * @brief updateBaseMotion Plan base CoM trajectory when dynamic gait.
+   * @param desired_linear_velocity
+   * @param desired_angular_velocity
+   * @return Save base CoM postion into base_target msgs and publish base pose into Rviz.
+   */
+
   bool updateBaseMotion(LinearVelocity& desired_linear_velocity,
                         LocalAngularVelocity& desired_angular_velocity);
+
   bool optimizePose(free_gait::Pose& pose);
 
   bool sendMotionGoal();
@@ -86,14 +116,25 @@ public:
 //  bool updateBaseVelocity(LinearVelocity& desired_linear_velocity,
 //                          LocalAngularVelocity& desired_angular_velocity);
 
-
+  /**
+   * @author eric wang
+   * @brief publishMarkers Visualize CoM marker and leg support region.
+   * @return Rviz.
+   */
   bool publishMarkers();
 
   Pose getDesiredBasePose();
 
   std::vector<LinearVelocity> current_velocity_buffer_;
+
+
   bool ignore_vd;
 
+  /**
+   * @author eric wang
+   * @brief getGaitType return the kind of the gait.
+   * @return Trot Pace Crawl.
+   */
   int getGaitType();
 
 
@@ -102,6 +143,10 @@ private:
   ros::Subscriber velocity_command_sub_;
   ros::ServiceServer gaitSwitchServer_, stepParameterServer_;
   ros::Publisher foot_marker_pub_, com_proj_marker_pub_, desired_base_com_marker_pub_, support_polygon_pub_, weight_pub_, desired_com_path_pub_;
+  ros::Publisher nominal_stance_pub_, nominal_basepose_pub_;
+
+  visualization_msgs::Marker nominal_foothold_marker;
+  visualization_msgs::MarkerArray nominal_stance_markers;
 
   free_gait::State robot_state_;
   Pose base_pose;
@@ -112,8 +157,10 @@ private:
   int step_number;
   Position LF_nominal, RF_nominal, LH_nominal, RH_nominal, P_CoM_desired_;
   Position footholds_in_stance, footprint_center_in_base, footprint_center_in_world;
-  Pose start_pose, desired_base_pose_, next_pose_;
+  Pose start_pose, desired_base_pose_, next_pose_, goal_pose_, interpolation_pose_;
+  std::vector<Pose> discretePose_vec;
   bool update_start_pose_flag_;
+  geometry_msgs::PoseArray nominal_basepose_array;
   geometry_msgs::Vector3Stamped surface_normal;
   geometry_msgs::PointStamped lf_foot_holds, rf_foot_holds, lh_foot_holds, rh_foot_holds;
   nav_msgs::Path desired_com_path_;
@@ -131,13 +178,15 @@ private:
 //  const free_gait::StepParameters& parameters_;
   free_gait::PlanarStance nominalPlanarStanceInBaseFrame;
   free_gait::Stance nominalStanceInBaseFrame_, stanceForOrientation_, hip_dispacement;
+  free_gait::Stance nominalStanceInWorldFrame_;
+  std::vector<free_gait::Stance> nominalStanceInWorldFrame_buffer;
 
   free_gait_msgs::ExecuteStepsGoal motion_goal_;
   free_gait_msgs::Step step_msg_;
   free_gait_msgs::BaseAuto base_auto_msg_;
   free_gait_msgs::BaseTarget base_target_msg_;
   free_gait_msgs::Footstep footstep_msg_;
-  bool base_auto_flag, base_target_flag, pace_flag, trot_flag, crawl_flag, crawl_leg_switched, pre_step;
+  bool base_auto_flag, base_target_flag, pace_flag, trot_flag, crawl_flag, crawl_leg_switched, pre_step, footstep_generate_flag;
 
   std::vector<int> crawl_leg_order;
 

@@ -45,7 +45,7 @@ public:
 
     control_method_server_ = nh_.advertiseService("/set_control_method", &BalanceControllerManager::setControlMethodCB, this);
 
-    ros::TimerOptions control_timer_options(ros::Duration(0.0025),
+    ros::TimerOptions control_timer_options(ros::Duration(0.0025), // 400 Hz.
                                             boost::bind(&BalanceControllerManager::controlLoop, this, _1),
                                             &update_queue_, false, false);
     control_timer_ = nh_.createTimer(control_timer_options);

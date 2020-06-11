@@ -79,9 +79,11 @@ namespace balance_controller{
   {
     ROS_INFO("Initializing RosBalanceController");
     //! WSHY: base balance QP controller
+    //! eric_wang: Base balance QP controller for support leg.
     contact_distribution_.reset(new ContactForceDistribution(node_handle, robot_state));
     virtual_model_controller_.reset(new VirtualModelController(node_handle, robot_state, contact_distribution_));
     //! WSHY: single leg controller
+    //! eric_wang: Single leg controller for swing leg.
     single_leg_solver_.reset(new MyRobotSolver(node_handle, robot_state));
     single_leg_solver_->model_initialization();
     if(!single_leg_solver_->loadLimbModelFromURDF())
@@ -270,7 +272,7 @@ namespace balance_controller{
     return true;
   };
   /**
-   * @brief RosBalanceController::update, controller update loop
+   * @brief RosBalanceController::update, controller update loop, 400 Hz.
    * @param time
    * @param period
    */
@@ -310,6 +312,7 @@ namespace balance_controller{
 
     boost::recursive_mutex::scoped_lock lock(r_mutex_);
     //! WSHY: read joint position command
+    //! eric_wang: Target joint position from free_gait planner.
     std::vector<double> & commands = *commands_buffer.readFromRT();
 //    LimbVector & foot_posiion_commands = *command_foot_buffer.readFromRT();
 //    LimbVector & foot_velocity_commands = *command_foot_vel_buffer.readFromRT();
@@ -329,12 +332,18 @@ namespace balance_controller{
     if(!ignore_contact_sensor)
       contactStateMachine();
     int num_of_stance_legs = 0;
+
+    //----------------------------------------------------------
+    // (EricWang) Contact state for control mode change.
+    //----------------------------------------------------------
     for(unsigned int i=0;i<4;i++)
       {
         free_gait::LimbEnum limb = static_cast<free_gait::LimbEnum>(i);
-        //! WSHY: set foot cartesian motion for single leg controller
+        //! WSHY: set foot cartesian motion for single leg controller.
+        //! eric_wang: Foot target position as single leg controller input.
         robot_state->setTargetFootPositionInBaseForLimb(Position(foot_positions.at(limb).vector()), limb);
         robot_state->setTargetFootVelocityInBaseForLimb(LinearVelocity(foot_velocities.at(limb).vector()), limb);
+        //! eric_wang: joint feedback to the controller.
         single_leg_solver_->setvecQAct(all_joint_positions.vector().segment(3*i, 3), limb);
         single_leg_solver_->setvecQDotAct(all_joint_velocities.vector().segment(3*i, 3), limb);
         //! WSHY: Without foot contact sensor node
@@ -344,7 +353,6 @@ namespace balance_controller{
             if(limbs_desired_state.at(limb)->getState() == StateSwitcher::States::StanceNormal && st_phase.at(limb)>0.1)*/
               limbs_state.at(limb)->setState(limbs_desired_state.at(limb)->getState());
           }
-
         switch (limbs_state.at(limb)->getState()) {
           case StateSwitcher::States::SwingNormal:
             {
@@ -585,13 +593,24 @@ namespace balance_controller{
       }
 
     lock.unlock();
+
+    //-----------------------------------------------------------------
+    // (EricWang) Balance controller, compute virtual force and torque,
+    // joint torque for stance leg, and joint control for different mode.
+    //-----------------------------------------------------------------
+
+
     //! WSHY: set the desired state
+    //! std::shared_ptr<free_gait::State> robot_state;
     robot_state->setPositionWorldToBaseInWorldFrame(base_desired_position);
     robot_state->setOrientationBaseToWorld(base_desired_rotation);
     robot_state->setLinearVelocityBaseInWorldFrame(base_desired_linear_velocity);
     robot_state->setAngularVelocityBaseInBaseFrame(base_desired_angular_velocity);
 
-
+    //-------------------------------------------------------
+    // Question How to caculate target joint position and velocity?
+    // We do not need target joint position and velocity, unless joint control.
+    //-------------------------------------------------------
 
     //! WSHY: update current base state from robot state handle
     robot_state->setCurrentLimbJoints(all_joint_positions);
@@ -620,6 +639,7 @@ namespace balance_controller{
 ****************/
 
     //! WSHY: compute joint torque
+    //! eric_wang: get target and actual base pose, velocity and compute virtual force and torque.
     bool keep_flag = false;
     if(!virtual_model_controller_->compute())
       {
@@ -642,6 +662,7 @@ namespace balance_controller{
 //        robot_state->setJointEffortsForLimb(static_cast<free_gait::LimbEnum>(i), joint_torque_limb);
 //      }
 
+    //! eric_wang: Compute 3 joint torque for stance leg.
     for(int i = 0; i<4; i++)
       {
         /****************
@@ -649,7 +670,8 @@ namespace balance_controller{
          ****************/
 //        if(robot_state_)
 //        double joint_torque_command = robot_state->getAllJointEfforts()(i);
-
+        //! eric_wang: Joint torque is from contact force distribution controller(computeJointTorques).
+        //! Joint torque for stance leg.
         free_gait::JointEffortsLeg joint_torque_limb = robot_state->getJointEffortsForLimb(static_cast<free_gait::LimbEnum>(i));
 //        for(int k=0;k<3;k++)
 //          joint_command.effort[i*3 + k] = joint_torque_limb(k);
@@ -680,6 +702,7 @@ namespace balance_controller{
             joint_command.name[index] = joint_names[index];
 //            if(num_of_stance_legs>1)
             joint_command.effort[index] = joint_torque_command;
+            //! eric_wang: target joint position from free_gait planner.
             joint_command.position[index] = commands[index];
             joint_actual.name[index] = joint_names[index];
 //            joint_actual.position[index] = all_joint_positions(index);
@@ -688,13 +711,13 @@ namespace balance_controller{
           }
       }
 //    joint_command_pub_.publish(joint_command);
-    //! WSHY: for Swing Leg Control
 //    std::vector<double> & commands = *commands_buffer.readFromRT();
     ros::Duration real_time_period = ros::Duration(period.toSec());
     free_gait::Force gravity_in_base = base_orinetation.rotate(free_gait::Force(0,0,-9.8));
+    //! eric_wang: For swing leg.
     if(!robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG))
       {
-//        ROS_INFO("LF_LEG is NOT Contacted");
+        ROS_INFO("LF_LEG is NOT Contacted");
         //! WSHY: compute gravity compensation
         free_gait::JointPositionsLeg joint_position_leg = free_gait::JointPositionsLeg(all_joint_positions.vector().segment(0,3));
         free_gait::JointEffortsLeg gravity_compensation_torque = robot_state->getGravityCompensationForLimb(free_gait::LimbEnum::LF_LEG,
@@ -706,9 +729,14 @@ namespace balance_controller{
 
         for(int i = 0;i<3;i++)
           {
+            // PID controller.
             double effort_command = computeTorqueFromPositionCommand(commands[i], i, real_time_period);
             if(is_cartisian_motion_.at(free_gait::LimbEnum::LF_LEG) || is_footstep_.at(free_gait::LimbEnum::LF_LEG))
-              effort_command = single_leg_solver_->getVecTauAct()[i];
+              {
+                effort_command = single_leg_solver_->getVecTauAct()[i];
+//                ROS_INFO_STREAM("LF swing leg effort command:" << effort_command << std::endl);
+                ROS_INFO_ONCE("effort control");
+              }
             else if(!is_legmode_.at(free_gait::LimbEnum::LF_LEG))
               {
                 //! WSHY: joint control mode, use Profile Position mode;
@@ -729,10 +757,13 @@ namespace balance_controller{
 //            joint_actual.effort[i] = single_leg_solver_->getQDDotAcutal().row(1)[i];
           }
         //        ROS_INFO("LF_LEG is NOT Contacted");
-      }else{ // for stance leg
+      }
+    else{ //! For stance leg.
         for(unsigned int i=0;i<3;i++)
           {
+            //! eric_wang: Set effor command for stance leg.
             joints[i].setCommand(joint_command.effort[i]);
+//            ROS_INFO_STREAM("LF stance leg effort command:" << joint_command.effort[i] << std::endl);
           }
       }
     if(!robot_state->isSupportLeg(free_gait::LimbEnum::RF_LEG))
@@ -1134,6 +1165,14 @@ namespace balance_controller{
 
   }
 
+
+  /**
+   * @brief RosBalanceController::computeTorqueFromPositionCommand PID controller only for joint control.
+   * @param command
+   * @param i
+   * @param period
+   * @return
+   */
   double RosBalanceController::computeTorqueFromPositionCommand(double command, int i, const ros::Duration& period)
   {
 //    ros::Duration real_time_period = ros::Duration(period.toSec()/0.55);
@@ -1172,14 +1211,19 @@ namespace balance_controller{
     return commanded_effort;
   }
   /**
-   * @brief RosBalanceController::baseCommandCallback, convert desired state, compute joint efforts
-   * @param robot_state
+   * @brief RosBalanceController::baseCommandCallback, convert desired state, compute joint efforts.
+   * @param robot_state base desired position, base desired rotation, base desired linear velocity, base desired angular velocity.
+   * @param joints target position, foot target position, leg mode.
    */
   void RosBalanceController::baseCommandCallback(const free_gait_msgs::RobotStateConstPtr& robot_state_msg)
   {
+    //ROS_INFO("Receive robot state once"); // receive desire robot state at frequency 100Hz.
     base_desired_position = Position(robot_state_msg->base_pose.pose.pose.position.x,
                                       robot_state_msg->base_pose.pose.pose.position.y,
                                       robot_state_msg->base_pose.pose.pose.position.z);
+   ROS_DEBUG_STREAM("Base desired position" << base_desired_position << std::endl);
+//   ROS_INFO_STREAM("Base desired position" << base_desired_position << std::endl);
+
     base_desired_rotation = RotationQuaternion(robot_state_msg->base_pose.pose.pose.orientation.w,
                                                           robot_state_msg->base_pose.pose.pose.orientation.x,
                                                           robot_state_msg->base_pose.pose.pose.orientation.y,
@@ -1214,6 +1258,10 @@ namespace balance_controller{
 //    free_gait::JointPositions all_joint_positions;
     std::vector<double> joint_commands;
     joint_commands.resize(12);
+
+    //-------------------------------------------------------
+    //! Question Why also receive joint target position, single leg controller does not need them.
+    //-------------------------------------------------------
     for(unsigned int i = 0;i<3;i++)
     {
         /****************
@@ -1275,6 +1323,7 @@ namespace balance_controller{
 //    command_foot_buffer.writeFromNonRT(foot_positions);
 //    command_foot_vel_buffer.writeFromNonRT(foot_velocities);
 
+    //std::shared_ptr<free_gait::State> robot_state_;
     robot_state_->setPositionWorldToBaseInWorldFrame(base_desired_position);
     robot_state_->setOrientationBaseToWorld(RotationQuaternion(base_desired_rotation));
     robot_state_->setLinearVelocityBaseInWorldFrame(base_desired_linear_velocity);
@@ -1396,6 +1445,7 @@ namespace balance_controller{
         st_phase.at(free_gait::LimbEnum::LF_LEG) = robot_state_msg->lf_leg_mode.phase;
         sw_phase.at(free_gait::LimbEnum::LF_LEG) = 0;
       } else {
+        //! eric_wang: Swing leg.
 //        ROS_WARN("NO Contact !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
         robot_state_->setSupportLeg(free_gait::LimbEnum::LF_LEG, false);
@@ -1753,6 +1803,7 @@ namespace balance_controller{
 
   void RosBalanceController::enforceJointLimits(double &command, unsigned int index)
     {
+      // ROS_ERROR("Joint force exceed limits");
       // Check that this joint has applicable limits
       if (joint_urdfs_[index]->type == urdf::Joint::REVOLUTE || joint_urdfs_[index]->type == urdf::Joint::PRISMATIC)
       {
@@ -1807,7 +1858,7 @@ namespace balance_controller{
         vmc_info_pub_.publish(vitual_force_torque_[index]);
         desired_vmc_info_pub_.publish(desired_vitual_force_torque_[index]);
         motor_status_word_pub_.publish(motor_status_word_[index]);
-        ros::Duration(0.0025).sleep();
+        ros::Duration(0.0025).sleep(); // 400 Hz
       }
     return true;
   }

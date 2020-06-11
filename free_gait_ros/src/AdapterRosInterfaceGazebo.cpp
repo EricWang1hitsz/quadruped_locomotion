@@ -29,7 +29,7 @@ bool AdapterRosInterfaceGazebo::subscribeToRobotState(const std::string& robotSt
   free_gait_msgs::RobotStateConstPtr initial_state;
   initial_state = ros::topic::waitForMessage<free_gait_msgs::RobotState>(robotStateTopic, ros::Duration(5));
   updateRobotState(initial_state);
-  ROS_ERROR("Subscribe to robot state topic '%s' .",robotStateTopic.c_str());
+  ROS_WARN("Subscribe to robot state topic '%s' .",robotStateTopic.c_str());
   joint_states_sub_ = nodeHandle_->subscribe(robotStateTopic, 1, &AdapterRosInterfaceGazebo::updateRobotState,this);
 }
 void AdapterRosInterfaceGazebo::unsubscribeFromRobotState()

@@ -22,6 +22,9 @@ Executor::Executor(StepCompleter& completer,
       isPausing_(false),
       preemptionType_(PreemptionType::PREEMPT_STEP),
       queue_(),
+      //-------------------------------------------------------
+      // Question what function is it?
+      //-------------------------------------------------------
       firstFeedbackDescription_(true)
 {
 }
@@ -85,16 +88,24 @@ bool Executor::advance(double dt, bool skipStateMeasurmentUpdate)
     auto& currentStep = queue_.getCurrentStep();
 //    std::cout<<"================================================"<<std::endl
 //            <<currentStep<<std::endl;
+    //----------------------------------------------------------
+    // (EricWang) Turn StepCompleter::complete().
+    //----------------------------------------------------------
     if (!completer_.complete(state_, queue_, currentStep)) {//set step parameters
       std::cerr << "Executor::advance: Could not complete step." << std::endl;
       return false;
     }
 //    std::cout<<"================================================"<<std::endl
 //            <<currentStep<<std::endl;
+
+    //----------------------------------------------------------
+    // (EricWang) Start compute step here.
+    //----------------------------------------------------------
     if (currentStep.needsComputation() && !computer_.isBusy()) {
       computer_.setStep(currentStep);
       addToFeedback("Starting computation of step.");
-      if (!computer_.compute()) {
+      if (!computer_.compute()) // eric_wang: execute compute funtion and return bool result.
+      {
         std::cerr << "Executor::advance: Could not compute step." << std::endl;
         return false;
       }
@@ -103,6 +114,9 @@ bool Executor::advance(double dt, bool skipStateMeasurmentUpdate)
         computer_.resetIsDone();
       }
     }
+
+
+
     if (!queue_.advance(dt)) return false; // Advance again after completion.
   }
 
@@ -246,7 +260,7 @@ bool Executor::resetStateWithRobot()
   state_.setBaseStateFromFeedback(adapter_.getLinearVelocityBaseInWorldFrame(), adapter_.getAngularVelocityBaseInBaseFrame());
   state_.setRobotExecutionStatus(true);
   // TODO Add base velocities.
-  ROS_WARN_STREAM("Reset State :"<<state_<<std::endl);
+  ROS_WARN_STREAM("Executor:: Reset State :"<<state_<<std::endl);
   return true;
 }
 
@@ -444,6 +458,8 @@ bool Executor::writeLegMotion()
 
 bool Executor::writeTorsoMotion()
 {
+    //! eric_wang: It is cycling all the time.
+//  ROS_WARN("Executor::WriteTorsoMotion");
   if (state_.getNumberOfSupportLegs() == 0) state_.setEmptyControlSetup(BranchEnum::BASE);
   if (!queue_.active()) return true;
 
@@ -475,6 +491,7 @@ bool Executor::writeTorsoMotion()
         frameId, adapter_.getWorldFrameId(), twist.getTranslationalVelocity());
     LocalAngularVelocity angularVelocityInBaseFrame = adapter_.transformAngularVelocity(
         frameId, adapter_.getBaseFrameId(), twist.getRotationalVelocity());
+    //! eric_wang: Set target base info to the controller.
     state_.setLinearVelocityBaseInWorldFrame(linearVelocityInWorldFrame);
     state_.setAngularVelocityBaseInBaseFrame(angularVelocityInBaseFrame);
   }

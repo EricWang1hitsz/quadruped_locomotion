@@ -60,8 +60,10 @@ QuadrupedState::~QuadrupedState()
 bool QuadrupedState::Initialize()
 {
 //    std::cout<<"Initialize QuadrupedState"<<std::endl;
+    ROS_INFO("Initialize Quadruped State");
     setLimbConfigure("><");//配置腿型
     setPoseBaseToWorld(Pose(Position(0,0,0), RotationQuaternion()));
+//    setPoseBaseToWorld(Pose(Position(10,10,0), RotationQuaternion()));
     joint_positions_ << 0,1.57,-3.14,0,-1.57,3.14,0,1.57,-3.14,0,-1.57,3.14;
     setCurrentLimbJoints(joint_positions_);
     joint_velocities_ << 0,0,0,0,0,0,0,0,0,0,0,0;
@@ -72,6 +74,11 @@ bool QuadrupedState::Initialize()
         target_foot_velocity_in_base_[limb.first] = Vector(0,0,0);
         target_foot_acceleration_in_base_[limb.first] = Vector(0,0,0);
         getPositionLegBaseToCoMInBaseFrame(limb.first);
+
+        //! eric_wang: Test foot position in base frame;
+        Position foot_position_in_base;
+        foot_position_in_base = getPoseFootInBaseFrame(LimbEnum::LF_LEG).getPosition();
+        ROS_WARN_STREAM("foot position in base frame:" << foot_position_in_base << std::endl);
       }
     return true;
 }
@@ -299,11 +306,13 @@ bool QuadrupedState::setAngularVelocityBaseInBaseFrame(const LocalAngularVelocit
 bool QuadrupedState::setJointPositions(const JointPositions joint_positions)
 {
   joint_positions_ = joint_positions;
-  setCurrentLimbJoints(joint_positions_);
+  //! eric_wang: change it! 20200527
+//  setCurrentLimbJoints(joint_positions_);
   return true;
 }
 bool QuadrupedState::setJointVelocities(const JointVelocities joint_velocoties)
 {
+    joint_velocities_ = joint_velocoties;
 
   return true;
 }

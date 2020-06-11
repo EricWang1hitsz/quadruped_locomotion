@@ -147,6 +147,7 @@ bool ContactForceDistribution::prepareLegLoading()
       legInfo.second.isLoadConstraintActive_ = false;
       legInfo.second.indexInStanceLegList_ = nLegsInForceDistribution_;//! WSHY: 0,1,2,3
       legInfo.second.startIndexInVectorX_ = legInfo.second.indexInStanceLegList_ * footDof_;//! WSHY: 0,3,6,9
+      //! eric_wang: set stance legs number
       nLegsInForceDistribution_++;
 
 //      if (sm::definitelyLessThan(legInfo.first->getDesiredLoadFactor(), 1.0))
@@ -325,7 +326,7 @@ bool ContactForceDistribution::addFrictionConstraints()
       // logging
       legInfo.second.secondDirectionOfFrictionPyramidInWorldFrame_ = Vector(orientationWorldToBase.inverseRotate(secondTangential));
 
-      // First tangential, positive
+      // First tangential, positive, 4 x 3
       D_rows.block(0, legInfo.second.startIndexInVectorX_, 1, footDof_) =
           legInfo.second.frictionCoefficient_ * normalDirection.transpose() + firstTangential.transpose();
       // First tangential, negative

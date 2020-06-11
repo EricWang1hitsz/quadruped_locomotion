@@ -36,6 +36,7 @@ public:
       is_joy_control(false),
       AdapterRos_(nodehandle, free_gait::AdapterRos::AdapterType::Gazebo),
       gait_generate_client_(nodehandle)
+
   {
     nodeHandle_.getParam("/use_gazebo", use_gazebo);
     nodeHandle_.getParam("/kinematics_control",is_kinematics_control);
@@ -46,6 +47,7 @@ public:
     if(use_gazebo){
       adapter.reset(AdapterRos_.getAdapterPtr());
 //      ROS_ERROR("In action server thread");
+      //! eric_wang: Subscribe robot state from Gazebo.
       AdapterRos_.subscribeToRobotState();
 //      ROS_ERROR("In action server thread");
     } else {
@@ -57,6 +59,7 @@ public:
     completer.reset(new StepCompleter(*parameters, *adapter));
     computer.reset(new StepComputer());
 //    ROS_ERROR("In action server thread");
+    //! eric_wang: Get last robot state from Gazebo.
     AdapterRos_.updateAdapterWithState();
     //! WSHY: get the initial pose and set to the fisrt pose command
     state->setPositionWorldToBaseInWorldFrame(AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame());
@@ -84,6 +87,8 @@ public:
     joy_control_server_ = nodeHandle_.advertiseService("/joy_control_switch", &ActionServerTest::joyControlSwitchCallback, this);
     crawl_start_server_ = nodeHandle_.advertiseService("/crawl_switch", &ActionServerTest::CrawlSwitchCallback, this);
 
+    towr_start_server_ = nodehandle.advertiseService("/towr_switch", &ActionServerTest::TowrSwitchCallback, this);
+
     limb_configure_switch_server_ = nodeHandle_.advertiseService("/limb_configure", &ActionServerTest::SwitchLimbConfigureCallback, this);
 
     joint_state_pub_ = nodeHandle_.advertise<sensor_msgs::JointState>("all_joint_position", 1);
@@ -93,6 +98,9 @@ public:
     server_->initialize();
     server_->start();
 //    server_->update();
+    //-------------------------------------------------------
+    // Question How to work together between these two thread?
+    //-------------------------------------------------------
     action_server_thread_ = boost::thread(boost::bind(&ActionServerTest::ActionServerThread, this));
 
 
@@ -114,7 +122,7 @@ public:
       AdapterRos_.updateAdapterWithState();
       executor->reset(); //! WSHY: adapter update has wrong
       cout<<adapter->getState()<<endl;
-      cout<<"Current base position : "<<AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame()<<endl;
+      cout<<"Current base position again : "<<AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame()<<endl;
 //      //! WSHY: get the initial pose and set to the fisrt pose command
       state->setPositionWorldToBaseInWorldFrame(AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame());
       state->setOrientationBaseToWorld(AdapterRos_.getAdapter().getOrientationBaseToWorld());
@@ -128,8 +136,13 @@ public:
         joint_state_pub_.publish(allJointStates_);
       std::cout<<AdapterRos_.getAdapter().getState()<<std::endl;
       rosPublisher->publish(AdapterRos_.getAdapter().getState());
+
+      //----------------------------------------------------------
+      // (EricWang) Cycling when ros is ok for this node.
+      //----------------------------------------------------------
       while (ros::ok()) {
-          server_->update();
+//          ROS_INFO("Action server updated Once");
+          server_->update();//! eric_wang: excutor.getqueen.add(step).
 //          ROS_INFO("Action Server updated Once");
 //          AdapterRos_.updateAdapterWithState();
 //          cout<<"Current base position : "<<AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame()<<endl;
@@ -138,16 +151,26 @@ public:
 //          cout<<"Current base position : "<<AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame()<<endl;
 //          cout<<"joint position: "<<AdapterRos_.getAdapter().getAllJointPositions()<<endl;
           if (!executor->getQueue().empty()&&!is_pause&&!is_stop) {
+              ROS_INFO("Executor is working");
             boost::recursive_mutex::scoped_lock lock(r_mutex_);
             AdapterRos_.updateAdapterWithState();
 
             executor->advance(dt, false);
+            //----------------------------------------------------------
+            // (EricWang) Publish desired robot state after planned to the controller.
+            //----------------------------------------------------------
+            //-----------------------------------------------------------
+            // Question Which if it should enter when crawl gait is true?
+            // Publish Crawl desired robot state when base auto.
+            //-----------------------------------------------------------
+            // eric_wang: Trot gait.
             if(is_start_gait && !gait_generate_client_.ignore_vd){
                 state->setLinearVelocityBaseInWorldFrame(desired_linear_velocity_);
                 state->setAngularVelocityBaseInBaseFrame(desired_angular_velocity_);
                 state->setPositionWorldToBaseInWorldFrame(gait_generate_client_.getDesiredBasePose().getPosition());
                 state->setOrientationBaseToWorld(gait_generate_client_.getDesiredBasePose().getRotation());
               }
+            // eric_wang: Pace gait.
             if(is_start_gait && gait_generate_client_.getGaitType() == 2)
               {
                 state->setPositionWorldToBaseInWorldFrame(gait_generate_client_.getDesiredBasePose().getPosition());
@@ -172,8 +195,11 @@ public:
                 //! WSHY: publish robot state to balance controller
               rosPublisher->publish(adapter->getState(), executor->getQueue());
               }
+            // TODO(EricWang): Towr is as planner, send desired robot state to the balance controller.
+
             lock.unlock();
-            } else{ // directly publish current state
+            }
+          else{ // directly publish current state
 //              state->setPositionWorldToBaseInWorldFrame(AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame());
 //              state->setOrientationBaseToWorld(AdapterRos_.getAdapter().getOrientationBaseToWorld());
 //              state->setLinearVelocityBaseInWorldFrame(AdapterRos_.getAdapter().getLinearVelocityBaseInWorldFrame());
@@ -182,12 +208,14 @@ public:
 //                  //! WSHY: publish robot state to balance controller
 //                rosPublisher->publish(*state);
 //                }
+              // eric_wang: start pace gait.
               if(is_start_gait && gait_generate_client_.getGaitType() == 2)
                 {
                   state->setPositionWorldToBaseInWorldFrame(gait_generate_client_.getDesiredBasePose().getPosition());
                   state->setOrientationBaseToWorld(gait_generate_client_.getDesiredBasePose().getRotation());
-                  rosPublisher->publish(gait_generate_client_.getDesiredBasePose());
+                  rosPublisher->publish(gait_generate_client_.getDesiredBasePose()); //eric_wang: just base pose.
                 }
+              // eric_wang: start trot gait.
               else if(is_start_gait && gait_generate_client_.getGaitType() == 1)
                 {
                   state->setPositionWorldToBaseInWorldFrame(gait_generate_client_.getDesiredBasePose().getPosition());
@@ -196,13 +224,14 @@ public:
                   state->setAngularVelocityBaseInBaseFrame(desired_angular_velocity_);
                   rosPublisher->publish(gait_generate_client_.getDesiredBasePose());
                 }
-              else if(!is_joy_control)
-                {
-                  rosPublisher->publish();
-                }
-
-
-
+//              else if(!is_joy_control)
+//                {
+//                  rosPublisher->publish();
+//                }
+              else if(use_towr)
+              {
+                  ROS_INFO("Test if executor not working");
+              }
             }
 
           rate.sleep();
@@ -219,15 +248,24 @@ public:
 
 //    gait_generate_client_.initializeTrot(0.45, 0.45);
 //    gait_generate_client_.initializePace(0.45, 3*0.5);
+
+    //--------------------------------------------------------------
+    //! (EricWang) Cycling all the time, together with action server.
+    //--------------------------------------------------------------
     while (ros::ok()) {
 //        ROS_INFO("Gait Generate updated Once");
         double ts = ros::Time::now().toSec();
+        //--------------------------------------------------------------
+        //! (EricWang) Start generating gait once gait request turn true
+        //--------------------------------------------------------------
         if(is_start_gait){
 //            double ts = ros::Time::now().toSec();
             boost::recursive_mutex::scoped_lock lock(r_mutex_);
             AdapterRos_.updateAdapterWithState();
             gait_generate_client_.copyRobotState(AdapterRos_.getAdapter().getState());
             gait_generate_client_.advance(dt);
+            //! eric_wang: ADD footstep generation in gait generation thread.
+//            gait_generate_client_.footstepGeneration();
             gait_generate_client_.generateFootHolds("foot_print");
             gait_generate_client_.updateBaseMotion(desired_linear_velocity_, desired_angular_velocity_);
 //            ROS_WARN_STREAM("Desired Velocity :"<<desired_linear_velocity_<<endl);
@@ -323,13 +361,13 @@ public:
     if(request.data == false){
         is_start_gait = false;
         gait_generate_client_.current_velocity_buffer_.clear();
-        ROS_INFO("STOP GAIT....");
+        ROS_INFO("STOP CRAWL GAIT....");
       }
     if(request.data == true){
         is_start_gait = true;
         gait_generate_client_.initializeCrawl(1,0.45*3);
 //        gait_generate_client_.initializePace(0.45, 3*0.5);
-      ROS_INFO("START GAIT....");
+      ROS_INFO("START CRAWL GAIT....");
       }
     response.success = true;
     return true;
@@ -349,6 +387,24 @@ public:
     response.success = true;
     return true;
   }
+
+  bool TowrSwitchCallback(std_srvs::SetBool::Request& request,
+                          std_srvs::SetBool::Response& response)
+  {
+      if(request.data == false)
+      {
+          use_towr = false;
+          ROS_INFO("Not use towr");
+      }
+      if(request.data == true)
+      {
+          use_towr = true;
+          ROS_INFO("Use towr");
+      }
+      response.success = true;
+      return true;
+  }
+
 
   bool SwitchLimbConfigureCallback(free_gait_msgs::SetLimbConfigure::Request& request,
                                    free_gait_msgs::SetLimbConfigure::Response& response)
@@ -380,10 +436,11 @@ private:
 
   sensor_msgs::JointState allJointStates_;
   ros::Publisher joint_state_pub_;
-  ros::ServiceServer pause_service_server_, stop_service_server_,
+  ros::ServiceServer pause_service_server_, stop_service_server_, towr_start_server_,
   gait_start_server_, limb_configure_switch_server_, pace_start_server_, joy_control_server_, crawl_start_server_;
   std::string pause_service_name_, stop_service_name_;
   bool use_gazebo, is_pause, is_stop, is_kinematics_control, is_start_gait, is_joy_control;
+  bool use_towr;
   /**
    * @brief r_mutex_
    */

@@ -519,6 +519,7 @@ bool MyRobotSolver::update(const ros::Time& time, const ros::Duration& period,
     velocity_error_in_base = robot_state_->getTargetFootVelocityInBaseForLimb(limb).vector()
         - robot_state_->getEndEffectorVelocityInBaseForLimb(limb).vector();
 //    ROS_WARN_STREAM("Inertial Matrix :" <<QuadrupedRobotModel.IA<<std::endl);
+    //! eric_wang: Control torque of swing leg.
     VecTauAct = jacobian.transpose() * (kp_.cwiseProduct(position_error_in_base)
                                         + kd_.cwiseProduct(velocity_error_in_base))
                 + VecTauAct;

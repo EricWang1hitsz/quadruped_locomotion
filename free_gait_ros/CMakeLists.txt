@@ -115,6 +115,11 @@ target_link_libraries(robot_state_pub_node
   target_link_libraries(foothold_optimization_test
     ${PROJECT_NAME}
     ${catkin_LIBRARIES})
+
+add_executable(gait_generate_client_test test/test_gait_generate_client.cpp)
+target_link_libraries(gait_generate_client_test
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES})
 #############
 ## Testing ##
 #############

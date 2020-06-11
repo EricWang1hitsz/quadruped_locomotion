@@ -67,14 +67,14 @@ TowrUserInterface::TowrUserInterface ()
   user_command_pub_ = n.advertise<towr_ros::TowrCommand>(towr_msgs::user_command, 1);
 
   goal_geom_.lin.p_.setZero();
-  goal_geom_.lin.p_ << 2.1, 0.0, 0.0;
+  goal_geom_.lin.p_ << 0.7, 0.0, 0.0;
   goal_geom_.ang.p_ << 0.0, 0.0, 0.0; // roll, pitch, yaw angle applied Z->Y'->X''
 
   robot_      = RobotModel::Monoped;
 //  robot_      = RobotModel::Quadruped;
   terrain_    = HeightMap::FlatID;
-  gait_combo_ = GaitGenerator::C0;
-  total_duration_ = 2.4;
+  gait_combo_ = GaitGenerator::C6;
+  total_duration_ = 5.4;
   visualize_trajectory_ = false;
   plot_trajectory_ = false;
   replay_speed_ = 1.0; // realtime
@@ -193,7 +193,7 @@ void
 TowrUserInterface::CallbackKey (int c)
 {
   const static double d_lin = 0.1;  // [m]
-  const static double d_ang = 0.25; // [rad]
+  const static double d_ang = 0.1; // [rad]
 
   switch (c) {
     case KEY_RIGHT:

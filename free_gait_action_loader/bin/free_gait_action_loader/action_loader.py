@@ -183,7 +183,7 @@ class ActionLoader:
         self.action = LaunchAction(file_path, self.execute_steps_relay)
 
     def _action_feedback_callback(self):
-        rospy.loginfo('Action switched to state: ' + ActionState.to_text(self.action.state) + '.')
+        rospy.loginfo('free_gait_action_loader:: Action switched to state: ' + ActionState.to_text(self.action.state) + '.')
         if self.execute_action_server.is_active():
             feedback = free_gait_msgs.msg.ExecuteActionFeedback()
             feedback.status = self.action.state
@@ -193,7 +193,7 @@ class ActionLoader:
         # If action sequence exists, continue with next action.
         if len(self.action_sequence_queue) > 0:
             thread.start_new_thread(self._load_next_action_in_sequence, ())
-        rospy.loginfo('Action switched to state: ' + ActionState.to_text(self.action.state) + '.')
+        rospy.loginfo('free_gait_action_loader:: Action switched to state: ' + ActionState.to_text(self.action.state) + '.')
 
     def _load_next_action_in_sequence(self):
         if self.action.state == ActionState.DONE:
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     try:
         rospy.init_node('free_gait_action_loader')
         action_loader = ActionLoader()
-        rospy.loginfo('Ready to load actions from service call.')
+        rospy.loginfo('free_gait_action_loader:: Ready to load actions from service call.')
 
         updateRate = rospy.Rate(10)
         while not rospy.is_shutdown():

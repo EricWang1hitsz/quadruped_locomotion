@@ -72,6 +72,9 @@ private slots:
 
   void on_crawlButton_clicked();
 
+  // use towr planner once clicked.
+  void on_towrButton_clicked();
+
 private:
   Ui::rqt_control_panel_plugin_widget *ui;
   ros::NodeHandle nodehandle_;
@@ -84,6 +87,7 @@ private:
   ros::ServiceClient trotSwitchClient_;
   ros::ServiceClient paceSwitchClient_;
   ros::ServiceClient crawlSwitchClient_;
+  ros::ServiceClient towrSwitchClient_;
 
   ros::Publisher eStopPublisher_;
   ros::Publisher jointPositionCommandPublisher_;

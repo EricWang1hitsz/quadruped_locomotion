@@ -8,16 +8,17 @@ SequenceQuadraticProblemSolver::SequenceQuadraticProblemSolver(std::shared_ptr<q
     tolerance_(tolerance),
     max_iteration_(max_iteration)
 {
-  std::cout<<"construct a sequence quadratic program solver class"<<std::endl;
+  std::cout<<"sequence quadratic problem solver:: construct a sequence quadratic program solver class"<<std::endl;
 };
 SequenceQuadraticProblemSolver::~SequenceQuadraticProblemSolver()
 {
-  std::cout<<"destroy a sequence quadratic program solver class"<<std::endl;
+  std::cout<<"sequence quadratic problem solver:: destroy a sequence quadratic program solver class"<<std::endl;
 }
 
 bool SequenceQuadraticProblemSolver::minimize(const PoseOptimizationProblem& problem,
                                               PoseParameterization& params)
 {
+    ROS_WARN("sequence quadratic problem solver running");
   std::cout<<"Sequence Quadratic minimizing......"<<std::endl;
   int k = 0;
   Eigen::MatrixXd H, A;

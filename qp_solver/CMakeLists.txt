@@ -174,6 +174,9 @@ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 #add_executable(qp_solve_test src/qp_solve_test.cpp)
 #target_link_libraries(qp_solve_test ${catkin_LIBRARIES} ${PROJECT_NAME})
 
+#add_executable(quadraticproblemexample test/quadraticproblemexample.cpp)
+#target_link_libraries(quadraticproblemexample ${catkin_LIBRARIES} ${PROJECT_NAME})
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use

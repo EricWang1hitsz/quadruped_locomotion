@@ -55,6 +55,7 @@ bool PoseConstraintsChecker::check(const Pose& pose)
 //  }
 
   if (!supportRegion_.isInside(adapter_.getCenterOfMassInWorldFrame().vector().head(2))) {
+      ROS_WARN("Pose constraints checker running");
     std::cout<<"Center of mass: "<<adapter_.getCenterOfMassInWorldFrame()<<" is out of support region"<<std::endl;
     return false;
   }

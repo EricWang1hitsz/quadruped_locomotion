@@ -45,6 +45,7 @@ bool PoseOptimizationGeometric::optimize(Pose& pose)
   }
   center.z() /= (double) stance_.size();
   pose.getPosition() = center;
+  ROS_WARN("Pose optimization geometric running");
   for(auto vert:supportRegion_.getVertices())
     std::cout<<"vert : "<<vert<<std::endl;
   std::cout<<"Pose Geomatric Stance"<<stance_<<std::endl;

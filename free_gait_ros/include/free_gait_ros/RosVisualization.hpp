@@ -11,6 +11,7 @@
 
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/PoseArray.h>
 #include <std_msgs/ColorRGBA.h>
 
 namespace free_gait {
@@ -35,6 +36,8 @@ class RosVisualization
                                                                           const double projectionDiameter);
   static const visualization_msgs::MarkerArray getFootholdsMarker(const Stance& footholds, const std::string& frameId,
                                                                   const std_msgs::ColorRGBA& color, const double size);
+  static const geometry_msgs::PoseArray getBasePoseArray(const Pose& basePose, const std::string& frameId);
+
   static const std::string getFootName(const LimbEnum& limb);
 };
 

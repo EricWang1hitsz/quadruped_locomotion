@@ -13,14 +13,20 @@ find_package(catkin REQUIRED COMPONENTS
   xpp_states
   towr_catkin
   free_gait_msgs
+  free_gait_core
+
+
 )
+
+find_file(dwl REQUIRED)
+
 
 find_package(ifopt 2.0.1 REQUIRED)
 
 
 ## Generate messages in the 'msg' folder
 add_message_files( FILES TowrCommand.msg )
-generate_messages( DEPENDENCIES std_msgs xpp_msgs )
+generate_messages( DEPENDENCIES std_msgs xpp_msgs)
 
 
 ###################################
@@ -32,10 +38,12 @@ catkin_package(
    LIBRARIES ${PROJECT_NAME}
    CATKIN_DEPENDS xpp_states roscpp
    free_gait_msgs
+   free_gait_core
    towr_catkin
    #DEPENDS towr_catkin
 
 )
+
 
 ###########
 ## Build ##

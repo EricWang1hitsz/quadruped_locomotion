@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <quadruped_model/common/typedefs.hpp>
 #include <free_gait_core/TypeDefs.hpp>
+#include <memory>
 
 
 int main(int argc, char* argv[])
@@ -28,7 +29,33 @@ int main(int argc, char* argv[])
     std:: cout << joint_vel << std::endl;
 
     std::shared_ptr<free_gait::State> state_;
-    state_.reset(new free_gait::State);
+//    std::shared_ptr<free_gait::State> state;
+//    state_.reset(new free_gait::State);
+//    std::vector<free_gait::LimbEnum> limbs_; // LF RF LH RH
+//    std::vector<free_gait::BranchEnum> branches_;
+
+//    limbs_.push_back(free_gait::LimbEnum::LF_LEG);
+//    limbs_.push_back(free_gait::LimbEnum::RF_LEG);
+//    limbs_.push_back(free_gait::LimbEnum::LH_LEG);
+//    limbs_.push_back(free_gait::LimbEnum::RH_LEG);
+
+//    branches_.push_back(free_gait::BranchEnum::BASE);
+//    branches_.push_back(free_gait::BranchEnum::LF_LEG);
+//    branches_.push_back(free_gait::BranchEnum::RF_LEG);
+//    branches_.push_back(free_gait::BranchEnum::LH_LEG);
+//    branches_.push_back(free_gait::BranchEnum::RH_LEG);
+    ROS_INFO("initilizing...");
+//    state_->Initialize();
+//    state_->initialize(limbs_, branches_);
+//    state_.reset(new free_gait::State);
+
+
+//    for(unsigned int i = 0; i < 4; i++)
+//    {
+//        state_->setSupportLeg(static_cast<free_gait::LimbEnum>(i), true);
+//        state_->setSurfaceNormal(static_cast<free_gait::LimbEnum>(i), Vector(0, 0, 1));
+//    }
+    ROS_INFO("test  1  here");
     state_->setPositionWorldToBaseInWorldFrame(base_pos);
     state_->setOrientationBaseToWorld(base_w);
     state_->setJointPositions(joint_pos);
@@ -47,10 +74,12 @@ int main(int argc, char* argv[])
 //    state_->setTargetFootAccelerationInBaseForLimb(foot_acceleration, free_gait::LimbEnum::RH_LEG);
 
     std::cout << " test here 1 " << std::endl;
-    WholeBodyController wbc(state_);
+
+//    balance_controller::WholeBodyController wbc(state_);
+    auto wbc = std::shared_ptr<balance_controller::WholeBodyController>(new balance_controller::WholeBodyController(nh, state_));
 
     LinearAcceleration reference_acc;
-    reference_acc << 1, 1, 1;
+    reference_acc << 1, 0, 0;
     AngularAcceleration reference_w;
     reference_w << 0.0, 0.0, 0.0;
 
@@ -68,15 +97,16 @@ int main(int argc, char* argv[])
 //    limbset_.push_back("rf_foot");
 //    limbset_.push_back("rh_foot");
 
-//    // tset joint space inertial matrix
+    // tset joint space inertial matrix
 //    std::cout << "--------------------joint space inertial matrix----------------" << std::endl;
 //    Eigen::MatrixXd joint_space_inertial_matrix;
-//    joint_space_inertial_matrix = wbc.computeJointSpaceInertialMatrix(base_pos, base_w, joint_pos);
+//    joint_space_inertial_matrix = wbc->computeJointSpaceInertialMatrix(base_pos, base_w, joint_pos);
+    std::cout << fixed << setprecision(3) << std::endl;
 //    std::cout << joint_space_inertial_matrix << std::endl;
 //    std::cout << "-------------------------inertial base matrix----------------" << std::endl;
-//    std::cout << wbc.getInertialBaseMatrix() << std::endl;
+//    std::cout << wbc->getInertialBaseMatrix() << std::endl;
 //    std::cout << "-------------------------inertial joint matrix----------------" << std::endl;
-//    std::cout << wbc.getInertialJointMatrix() << std::endl;
+//    std::cout << wbc->getInertialJointMatrix() << std::endl;
 
 //    // test nonlinear effect force matrix
 //    std::cout << "--------------------nonlinear effect force matrix----------------" << std::endl;
@@ -93,16 +123,21 @@ int main(int argc, char* argv[])
 //    Eigen::MatrixXd jacobian;
 //    jacobian = wbc.computeJacobian(base_pos, base_w, joint_pos, limbset_);
 //    std::cout << jacobian << std::endl;
-    wbc.prepareLegLoading();
-    wbc.prepareOptimazation(reference_acc, reference_w);
-    wbc.addPhysicalConsistencyConstraints();
-    wbc.addStanceAndSwingLegConstraints();
-    wbc.addFrictionConeConstraints();
-    wbc.addTorqueLimitConstraints();
-    wbc.solveOptimazation();
-    JointTorques joint_torque;
-    joint_torque = wbc.getFeedforwardJointTorque();
-    std::cout << "-------------------------Feed-Forward Joint Torque--------------------" << std::endl;
-    std::cout << joint_torque << std::endl;
+    wbc->prepareLegLoading();
+    wbc->prepareOptimazation(reference_acc, reference_w);
+    wbc->addPhysicalConsistencyConstraints();
+    wbc->addStanceAndSwingLegConstraints();
+    wbc->addFrictionConeConstraints();
+    wbc->addTorqueLimitConstraints();
+    wbc->solveOptimazation();
+    if(wbc->optimazation_)
+    {
+        JointTorques joint_torque;
+        joint_torque = wbc->getFeedforwardJointTorque();
+        std::cout << "-------------------------Feed-Forward Joint Torque--------------------" << std::endl;
+        std::cout << joint_torque << std::endl;
+    }
+
+    std::cout << "END" << std::endl;
 
 }

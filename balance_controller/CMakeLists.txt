@@ -32,8 +32,11 @@ find_package(catkin REQUIRED COMPONENTS
   single_leg_test
   ros_ethercat_driver
   dynamic_reconfigure
-  dwl_ros
+  whole_body_model
 )
+
+find_package(RBDL REQUIRED)
+find_package(RBDL COMPONENTS URDFReader REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -163,6 +166,7 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
+  ${RBDL_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -187,10 +191,10 @@ add_library(ros_balance_controller
   )
 target_link_libraries(ros_balance_controller balance_controller ${catkin_LIBRARIES})
 
-#add_library(whole_body_controller
-#  src/ros_controller/whole_body_controller.cpp
-#  )
-#target_link_libraries(whole_body_controller balance_controller ${catkin_LIBRARIES})
+add_library(whole_body_controller
+  src/ros_controller/whole_body_controller.cpp
+  )
+target_link_libraries(whole_body_controller balance_controller ${catkin_LIBRARIES})
 
 add_library(robot_state_gazebo_ros_control_plugin
     src/ros_controller/robot_state_gazebo_ros_control_plugin.cpp
@@ -258,6 +262,8 @@ target_link_libraries(balance_controller_manager
 #    whole_body_controller
 #    ${PROJECT_NAME}
 #    ${catkin_LIBRARIES}
+#    ${RBDL_LIBRARY}
+#    ${RBDL_URDFReader_LIBRARY}
 #  )
 
 #############

@@ -7,6 +7,14 @@
     </class>
   </library>
 
+  <library path="lib/libwhole_body_controller">
+    <class name="balance_controller/WholeBodyController"
+           type="balance_controller::WholeBodyController"
+           base_class_type="controller_interface::ControllerBase">
+      <description>A whole body controller .</description>
+    </class>
+  </library>
+
   <library path="lib/libstate_estimate_controller">
     <class name="balance_controller/StateEstimateController"
            type="balance_controller::StateEstimateController"

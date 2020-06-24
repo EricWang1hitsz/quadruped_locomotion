@@ -6,43 +6,38 @@ using namespace Eigen;
 
 namespace balance_controller {
 
+//WholeBodyController::WholeBodyController()
+//{
+//    // actual joint data order LF RF LH RH
+//    limbs_.push_back(free_gait::LimbEnum::LF_LEG);
+//    limbs_.push_back(free_gait::LimbEnum::RF_LEG);
+//    limbs_.push_back(free_gait::LimbEnum::LH_LEG);
+//    limbs_.push_back(free_gait::LimbEnum::RH_LEG);
+//    //todo need change if the name of URDF change
+//    limbset_.push_back("lf_foot");
+//    limbset_.push_back("rf_foot");
+//    limbset_.push_back("lh_foot");
+//    limbset_.push_back("rh_foot");
+
+//    // model floating base system and kinematics
+//    string urdf_file = "/home/eric/catkin_ws/src/whole_body_model/test/hyq.urdf";
+//    char* urdf_model_ = (char*)urdf_file.c_str();
+//    RigidBodyDynamics::Addons::URDFReadFromFile(urdf_model_, &rbd, true, false);
+
+//    // get id of each body
+//    wbc::rbd::getListOfBodies(body_id_, rbd);
+//    ROS_INFO("test class initialization end");
+
+//}
+
+//WholeBodyController::WholeBodyController(const ros::NodeHandle& node_handle,
+//                                         std::shared_ptr<free_gait::State> robot_state)
+//: node_handle_(node_handle),
+//  robot_state_(robot_state) // Initialize robot_state share_ptr
 WholeBodyController::WholeBodyController()
+
 {
-    wdyn.reset(new dwl::model::WholeBodyDynamics());
-
-    // actual joint data order LF RF LH RH
-    limbs_.push_back(free_gait::LimbEnum::LF_LEG);
-    limbs_.push_back(free_gait::LimbEnum::RF_LEG);
-    limbs_.push_back(free_gait::LimbEnum::LH_LEG);
-    limbs_.push_back(free_gait::LimbEnum::RH_LEG);
-    //todo need change if the name of URDF change
-    limbset_.push_back("lf_foot");
-    limbset_.push_back("rf_foot");
-    limbset_.push_back("lh_foot");
-    limbset_.push_back("rh_foot");
-
-    // model floating base system and kinematics
-    string urdf_file = "/home/hit/catkin_ws_code/src/dwl_ros/src/test/robot.urdf";
-    string yarf_file = "/home/hit/catkin_ws_code/src/dwl_ros/src/test/hyq.yarf";
-    fbs.resetFromURDFFile(urdf_file, yarf_file);
-    wkin.modelFromURDFFile(urdf_file, yarf_file);
-    wdyn->modelFromURDFFile(urdf_file, yarf_file);
-
-    // test if URDF is read correctly
-//    string model_hierarchy = RigidBodyDynamics::Utils::GetModelHierarchy(fbs.getRBDModel());
-//    std::cout << model_hierarchy << std::endl;
-
-    // get id of each body
-    dwl::rbd::getListOfBodies(body_id_, fbs.getRBDModel());
-    ROS_INFO("test class initialization end");
-
-}
-
-WholeBodyController::WholeBodyController(std::shared_ptr<free_gait::State> robot_state)
-    : robot_state_(robot_state)
-{
-    wdyn.reset(new dwl::model::WholeBodyDynamics());
-
+    ROS_INFO("Initilizating Whole Body Controller");
     // actual joint data order LF RF LH RH
     limbs_.push_back(free_gait::LimbEnum::LF_LEG);
     limbs_.push_back(free_gait::LimbEnum::RF_LEG);
@@ -57,44 +52,35 @@ WholeBodyController::WholeBodyController(std::shared_ptr<free_gait::State> robot
     branches_.push_back(free_gait::BranchEnum::RF_LEG);
     branches_.push_back(free_gait::BranchEnum::LH_LEG);
     branches_.push_back(free_gait::BranchEnum::RH_LEG);
+    ROS_INFO("test");
     //TODO why must reset, or cannot traversal limbs.
     robot_state_.reset(new free_gait::State);
-//    robot_state_->initialize(limbs_, branches_);
+    robot_state_->initialize(limbs_, branches_);
 
     for(unsigned int i = 0; i < 4; i++)
     {
         robot_state_->setSupportLeg(static_cast<free_gait::LimbEnum>(i), true);
         robot_state_->setSurfaceNormal(static_cast<free_gait::LimbEnum>(i), Vector(0, 0, 1));
     }
-
-    //todo need change if the name of URDF change
+    ROS_INFO("test00");
+    //HyQ foot order
+//    limbset_.push_back("lf_foot");
+//    limbset_.push_back("lh_foot");
+//    limbset_.push_back("rf_foot");
+//    limbset_.push_back("rh_foot");
+    //Robot foot order
     limbset_.push_back("lf_foot_Link");
     limbset_.push_back("rf_foot_Link");
     limbset_.push_back("lh_foot_Link");
     limbset_.push_back("rh_foot_Link");
+    ROS_INFO("test1");
 
-    minTorque_(12);
-    maxTorque_(12);
-
-    robotMass_ = 50;
+    robotMass_ = 80;
     // set stance legs number
 //    nLegsInForceDistribution_ = 4;
     footDof_ = 3;
 //    n_ = footDof_ * nLegsInForceDistribution_;
 
-    // model floating base system and kinematics
-    string urdf_file = "/home/hit/catkin_ws_code/src/dwl_ros/src/test/robot.urdf";
-    string yarf_file = "/home/hit/catkin_ws_code/src/dwl_ros/src/test/hyq.yarf";
-    fbs.resetFromURDFFile(urdf_file, yarf_file);
-    wkin.modelFromURDFFile(urdf_file, yarf_file);
-    wdyn->modelFromURDFFile(urdf_file, yarf_file);
-
-    // test if URDF is read correctly
-//    string model_hierarchy = RigidBodyDynamics::Utils::GetModelHierarchy(fbs.getRBDModel());
-//    std::cout << model_hierarchy << std::endl;
-
-    // get id of each body
-    dwl::rbd::getListOfBodies(body_id_, fbs.getRBDModel());
     ROS_INFO("test class 2 initialization end");
 }
 
@@ -105,7 +91,24 @@ WholeBodyController::~WholeBodyController()
 
 bool WholeBodyController::init(hardware_interface::RobotStateInterface *hardware, ros::NodeHandle &node_handle)
 {
-    ROS_INFO("Initialize whole-body controller...");
+    ROS_INFO("Initialize whole-body controller");
+    wkin.reset(new wbc::WholeBodyKinematic());
+//    if(!loadModelFromURDF())
+//    {
+//        ROS_ERROR("Fail to load kinematic model from urdf file");
+//    }
+
+    if(!wkin->modelFromURDFModel())
+    {
+        ROS_ERROR("Fail to load kinematic model from urdf file");
+    }
+    // Must reset to initialize smart pointer.
+    wdyn.reset(new wbc::WholeBodyDynamic());
+    if(!wdyn->modelFromURDFModel())
+    {
+        ROS_ERROR("Fail to load dynamic model from urdf file");
+    }
+
     std::string param_name = "joints";
     if(!node_handle.getParam(param_name, joint_names))
     {
@@ -121,10 +124,32 @@ bool WholeBodyController::init(hardware_interface::RobotStateInterface *hardware
 
     robot_state_handle = hardware->getHandle("base_controller");
 
+    // model floating base system and kinematics
+//    string urdf_file = "/home/eric/catkin_ws/src/whole_body_model/test/robot.urdf";
+    //string urdf_file = ros::package::getPath("balance_controller") + "/test/robot.urdf";
+    //ROS_INFO_STREAM("Find urdf file: " << std::endl << urdf_file << std::endl);
+//    char* urdf_model_ = (char*)urdf_file.c_str();
+//    RigidBodyDynamics::Addons::URDFReadFromFile(urdf_model_, &rbd, false, false);
+//    ROS_WARN("test");
+//    //Print model information
+//    wbc::rbd::printModelInfo(rbd);
+
+//    // get id of each body
+//    wbc::rbd::getListOfBodies(body_id_, rbd);
+
+//    // Initialize kinematic and dynamic for rbd model
+//    wkin.reset(new wbc::WholeBodyKinematic());
+//    wkin->modelFromURDFModel(urdf_file, false);
+//    wdyn.reset(new wbc::WholeBodyDynamic());
+//    wdyn->modelFromURDFModel(urdf_file, false);
+
+    ROS_WARN("Initialization End ");
+
 }
 
 void WholeBodyController::update(const ros::Time &time, const ros::Duration &period)
 {
+    ROS_INFO("Update Once ");
     // actual base pose
     Position base_actual_position = Position(robot_state_handle.getPosition()[0],
             robot_state_handle.getPosition()[1],
@@ -133,19 +158,25 @@ void WholeBodyController::update(const ros::Time &time, const ros::Duration &per
             robot_state_handle.getOrientation()[1],
             robot_state_handle.getOrientation()[2],
             robot_state_handle.getOrientation()[3]);
-    // atual base twist
-    LinearVelocity base_actual_linear_velocity = LinearVelocity(robot_state_handle.getLinearVelocity()[0],
-            robot_state_handle.getLinearVelocity()[1],
-            robot_state_handle.getLinearVelocity()[2]);
-    LocalAngularVelocity base_actual_angular_velocity = LocalAngularVelocity(robot_state_handle.getAngularVelocity()[0],
-            robot_state_handle.getAngularVelocity()[0],
-            robot_state_handle.getAngularVelocity()[0]);
+//    // atual base twist
+//    LinearVelocity base_actual_linear_velocity = LinearVelocity(robot_state_handle.getLinearVelocity()[0],
+//            robot_state_handle.getLinearVelocity()[1],
+//            robot_state_handle.getLinearVelocity()[2]);
+//    LocalAngularVelocity base_actual_angular_velocity = LocalAngularVelocity(robot_state_handle.getAngularVelocity()[0],
+//            robot_state_handle.getAngularVelocity()[0],
+//            robot_state_handle.getAngularVelocity()[0]);
+    /////example
+    //Position base_actual_position(0, 0, 0);
+    //RotationQuaternion base_actual_orientation(0, 0, 0, 1);
+    LinearVelocity base_actual_linear_velocity(0, 0, 0);
+    LocalAngularVelocity base_actual_angular_velocity(0, 0, 0);
+
     // 1 save base actual state into robot_state_
     robot_state_->setPositionWorldToBaseInWorldFrame(base_actual_position);
     robot_state_->setOrientationBaseToWorld(base_actual_orientation);
     robot_state_->setLinearVelocityBaseInWorldFrame(base_actual_linear_velocity);
     robot_state_->setAngularVelocityBaseInBaseFrame(base_actual_angular_velocity);
-
+    ROS_WARN("Got base actual state");
     // actual joint position and velocity
     sensor_msgs::JointState joint_command, joint_actual;
     joint_command.effort.resize(12);
@@ -169,10 +200,27 @@ void WholeBodyController::update(const ros::Time &time, const ros::Duration &per
         joint_actual.velocity[i] = all_joint_velocities(i);
         joint_actual.effort[i] = all_joint_efforts(i);
     }
+//    JointPositions all_joint_positions;
+//    all_joint_positions<< 0.0, 0.75, -1.5,
+//            0.0, -0.75, 1.5,
+//            0.0, 0.75, -1.5,
+//            0.0, -0.75, 1.5;
+//    JointVelocities all_joint_velocities;
+//    all_joint_velocities<<0, 0, 0,
+//            0, 0, 0,
+//            0, 0, 0,
+//            0, 0, 0;
+    // change the joint order according to urdf's.
+    free_gait::JointPositionsLeg rh_leg_joints = free_gait::JointPositionsLeg(all_joint_positions.vector().segment(6, 3));
+    free_gait::JointPositionsLeg lh_leg_joints = free_gait::JointPositionsLeg(all_joint_positions.vector().segment(9, 3));
+    all_joint_positions.vector().segment(6, 3) = lh_leg_joints.vector().segment(0, 3);
+    all_joint_positions.vector().segment(9, 3) = rh_leg_joints.vector().segment(0, 3);
+    ROS_INFO_STREAM("all joint position: " << std::endl << all_joint_positions << std::endl);
+    ROS_INFO_STREAM("all joint velocity: " << std::endl << all_joint_velocities << std::endl);
     // 2 save joint actual state into robot_state_
     robot_state_->setJointPositions(all_joint_positions);
     robot_state_->setAllJointVelocities(all_joint_velocities);
-
+    ROS_WARN("Got all joints state");
     // Computing reference base acceleration
     Position postionErrorInWorldFrame = base_desired_position - base_actual_position;
     LinearVelocity linearVelocityInWorldFrame = base_desired_linear_velocity - base_actual_linear_velocity;
@@ -184,11 +232,12 @@ void WholeBodyController::update(const ros::Time &time, const ros::Duration &per
     base_reference_angular_acceleration = base_desired_angular_acceleration
             + AngularAcceleration(Kw.cwiseProduct(orientationErrorInBaseFrame))
             + AngularAcceleration(Dw.cwiseProduct(angularVelocityErrorInBaseFram.toImplementation()));
-
+    ROS_WARN("Computed reference base acceleration");
     // set foot contact state if update
-    contactStateMachine();
+    //contactStateMachine();
 
     // set optimazation problem
+    resetOptimazation();
     prepareLegLoading();
     prepareOptimazation(base_reference_linear_acceleration, base_reference_angular_acceleration);
     addPhysicalConsistencyConstraints();
@@ -198,12 +247,28 @@ void WholeBodyController::update(const ros::Time &time, const ros::Duration &per
     solveOptimazation();
 
     // output optimazation result
-    JointTorques joint_torque;
-    joint_torque = getFeedforwardJointTorque();
+    if(optimazationed_)
+    {
+        JointTorques joint_torque;
+        joint_torque = getFeedforwardJointTorque();
+        ROS_WARN("get feedforward joint torque");
+        for(int i = 0; i < 12; i++)
+        {
+            double joint_torque_command = joint_torque(i);
+            robot_state_handle.getJointEffortWrite()[i] = joint_torque_command;
+            robot_state_handle.mode_of_joint_[i] = 4;
+        }
+    }
+}
 
+void WholeBodyController::starting(const ros::Time &time)
+{
+    ROS_INFO("Starting Whole Body Controller");
+}
 
-
-
+void WholeBodyController::stopping(const ros::Time &time)
+{
+    ROS_INFO("Stopping Whole Body Controller");
 }
 
 void WholeBodyController::desiredCommandCallback(const free_gait_msgs::RobotStateConstPtr &robot_state_msg)
@@ -255,15 +320,32 @@ void WholeBodyController::contactStateMachine()
     }
 }
 
+bool WholeBodyController::loadModelFromURDF()
+{
+    //std::string urdf_model = "/home/eric/catkin_ws/src/whole_body_model/test/robot.urdf";
+    std::string urdf_model = ros::package::getPath("quadruped_model") + "/urdf/quadruped_model.urdf";
+    //char* urdf_model_ = (char*)urdf_model.c_str();
+    std::string model_xml_string;
+    model_xml_string = wbc::urdf_model::fileToXml(urdf_model);
+    RigidBodyDynamics::Addons::URDFReadFromString(model_xml_string.c_str(), &rbd, false);
+
+    wbc::rbd::getListOfBodies(body_id_, rbd);
+
+    //rbd::printModelInfo(rbd);
+    ROS_WARN("Loaded model from URDF");
+    return true;
+}
+
 bool WholeBodyController::prepareLegLoading()
 {
+    ROS_INFO("Preparing Loading");
     nLegsInForceDistribution_ = 0;
 
     for (auto& legInfo : legInfos_)
     {
-      if (robot_state_->isSupportLeg(legInfo.first))
+//      if (robot_state_->isSupportLeg(legInfo.first))
         //if(real_contact_.at(legInfo.first))
-      {
+//      {
           // if is support leg
           legInfo.second.isPartOfForceDistribution_ = true;
           legInfo.second.isLoadConstraintActive_ = false;
@@ -273,12 +355,13 @@ bool WholeBodyController::prepareLegLoading()
           legInfo.second.isLoadConstraintActive_ = true;
 
           legInfo.second.frictionCoefficient_ = 0.8;
-      }
-      else
-      {
-          legInfo.second.isPartOfForceDistribution_ = false;
-          legInfo.second.isLoadConstraintActive_ = false;
-      }
+
+//      }
+//      else
+//      {
+//          legInfo.second.isPartOfForceDistribution_ = false;
+//          legInfo.second.isLoadConstraintActive_ = false;
+//      }
     }
 
     std::cout << "Loading stance legs number: " << nLegsInForceDistribution_ << std::endl;
@@ -289,6 +372,7 @@ bool WholeBodyController::prepareLegLoading()
 bool WholeBodyController::prepareOptimazation(const LinearAcceleration &linear_a,
                                               const AngularAcceleration &angular_a)
 {
+    ROS_INFO("Preparing Optimazation");
     n_ = footDof_ * nLegsInForceDistribution_;// 3 x stance leg number
     // set g matrix, base linear and angular acceleration
     const LinearAcceleration gravitationalAccelerationInWorldFrame = LinearAcceleration(0.0,0.0,-9.8);//torso_->getProperties().getGravity();
@@ -310,22 +394,21 @@ bool WholeBodyController::prepareOptimazation(const LinearAcceleration &linear_a
     // replicate rows and cols of identity matrix 3x3 as the upper 3 rows of G_rightMatrix.
     G_rightMatrix.middleRows(0, 3) = (Matrix3d::Identity().replicate(1, nLegsInForceDistribution_)).sparseView();
 
+//    std::cout << fixed << setprecision(3) << std::endl;
     Eigen::MatrixXd G_pre(6, 18 + n_);
     G_pre.block(0, 0, 6, 6) = G_leftMatrix;
     G_pre.block(0, 6, 6, 12) = G_middleMatrix;
     G_pre.block(0, 18, 6, 3 * nLegsInForceDistribution_) = G_rightMatrix;
     G_.middleRows(0, 6) = G_pre.sparseView();
-    std::cout << "G_ Matrix: " << std::endl << setprecision(3) << G_ << std::endl;
-    std::cout << "g_ Matrix: " << std::endl << setprecision(3) << g_ << std::endl;
+    std::cout << "G_ Matrix: " << std::endl << G_ << std::endl;
+    std::cout << "g_ Matrix: " << std::endl << g_ << std::endl;
     Eigen::Matrix<double, 6, 1> baseAccelerationWeights_;
     baseAccelerationWeights_ << 0.5, 0.5, 0.5,
                                 0.5, 0.5, 0.5;
     S_ = baseAccelerationWeights_.asDiagonal();
-//    std::cout << "G_ Matrix: " << std::endl << setprecision(3) << S_ << std::endl;
     double torqueGroudForceWeight_ = 0.5;
     W_.setIdentity(18 + n_);
     W_ = W_ * torqueGroudForceWeight_;
-//    std::cout << "G_ Matrix: " << std::endl << setprecision(3) << W_ << std::endl;
     x_.setZero(18 + n_);
 
     return true;
@@ -333,6 +416,7 @@ bool WholeBodyController::prepareOptimazation(const LinearAcceleration &linear_a
 
 bool WholeBodyController::addPhysicalConsistencyConstraints()
 {
+    ROS_INFO("Adding Physical Consistency Constraints");
     int rowIndex = C_.rows();
     Eigen::SparseMatrix<double, Eigen::RowMajor> C_temp(C_);
     C_.resize(rowIndex + 6, 18 + n_); // Mcom 6 x 6
@@ -371,19 +455,18 @@ bool WholeBodyController::addPhysicalConsistencyConstraints()
     C_.middleRows(rowIndex, 6) = C_pre.sparseView();
     c_.segment(rowIndex, 6) = -floating_effect;
     std:: cout << "-------------------------------------------------------------" << std::endl;
+    std::cout << fixed << setprecision(3) << std::endl;
     std::cout << "C_ Matrix Size After Adding Physical Consistencey: " << std::endl << C_.rows() << " x " << C_.cols() <<std::endl;
-//    std::cout << setprecision(3) << C_ << std::endl;
-    std::cout << fixed;
-//    std::cout << std::setiosflags(ios::left) << setw(4) << std::endl;
     std::cout << C_ << std::endl;
     std::cout << "c_ Matrix Size After Adding Physical Consistencey: " << std::endl << c_.rows() << " x " << c_.cols() << std::endl;
-    std::cout << setprecision(3) << c_ << std::endl;
+    std::cout << c_ << std::endl;
     return true;
 
 }
 
 bool WholeBodyController::addStanceAndSwingLegConstraints()
 {
+    ROS_INFO("Adding Stance and Swing Leg Contraints");
     // add swing and stance condition contraint at the same time
     int rowIndex = C_.rows();
     //std::cout << "C_ first: " << std::endl << C_ << std::endl;
@@ -433,12 +516,15 @@ bool WholeBodyController::addStanceAndSwingLegConstraints()
         {
             // swing leg, c = vdot - Jswdot*qdot
             std::cout << "swing leg " << std::endl;
-            Eigen::Vector3d foot_acceleration = Eigen::Vector3d((robot_state_->getTargetFootAccelerationInBaseForLimb(legInfo.first)).toImplementation());
+            //Eigen::Vector3d foot_acceleration = Eigen::Vector3d((robot_state_->getTargetFootAccelerationInBaseForLimb(legInfo.first)).toImplementation());
+            Eigen::Vector3d foot_acceleration;
+            foot_acceleration << 1, 1, 1;
             c_.segment(rowIndex + legInfo.second.startIndexInVectorX_, 3) = foot_acceleration - c_row.segment(legInfo.second.startIndexInVectorX_, 3);
         }
     }
     // check matrix size
     std:: cout << "-------------------------------------------------------------" << std::endl;
+    std::cout << fixed << setprecision(3) << std::endl;
     std::cout << "C_ Matrix Size After Adding Stance and Swing Constraint: " << std::endl << C_.rows() << " x " << C_.cols() <<std::endl;
     std::cout << C_ << std::endl;
     std::cout << "c_ Matrix Size After Adding Stance and Swing Constraint: " << std::endl << c_.rows() << " x " << c_.cols() << std::endl;
@@ -472,7 +558,8 @@ bool WholeBodyController::addFrictionConeConstraints()
         MatrixXd D_rows = MatrixXd::Zero(nDirections, 18 + n_);
 //        Position positionWorldToFootInWorldFrame = robot_state_->getPositionWorldToFootInWorldFrame(legInfo.first);
         Vector footContactNormalInWorldFrame;
-        footContactNormalInWorldFrame = robot_state_->getSurfaceNormal(legInfo.first);
+//        footContactNormalInWorldFrame = robot_state_->getSurfaceNormal(legInfo.first);
+        footContactNormalInWorldFrame = Vector(0, 0, 1);
         Vector footContactNormalInBaseFrame = orientationWorldToBase.rotate(footContactNormalInWorldFrame);
 
         const Vector3d normalDirection = footContactNormalInBaseFrame.toImplementation();
@@ -519,6 +606,7 @@ bool WholeBodyController::addFrictionConeConstraints()
     }
 
     std:: cout << "-------------------------------------------------------------" << std::endl;
+    std::cout << fixed << setprecision(3) << std::endl;
     std::cout << "D_ Matrix Size After Adding Friction Cone Constraint: " << std::endl << D_.rows() << " x " << D_.cols() <<std::endl;
     std::cout << D_ << std::endl;
     std::cout << "d_ Matrix Size After Adding Friction Cone Constraint: " << std::endl << d_.rows() << " x " << d_.cols() << std::endl;
@@ -577,20 +665,22 @@ bool WholeBodyController::addTorqueLimitConstraints()
                  0, 0, 0,
                  0, 0, 0;
     Eigen::VectorXd maxTorque(12);
-    maxTorque << 50, 50, 50,
-                 50, 50, 50,
-                 50, 50, 50,
-                 50, 50, 50;
+    maxTorque << 20, 20, 20,
+                 20, 20, 20,
+                 20, 20, 20,
+                 20, 20, 20;
     fixed_effect = getNonlinearJointEffectsForce();
     ROS_INFO("test");
     d_.segment(row_Index, 12) = fixed_effect + minTorque;
     f_.segment(row_Index, 12) = fixed_effect + maxTorque;
     ROS_INFO("test");
     std:: cout << "-------------------------------------------------------------" << std::endl;
+    std::cout << fixed << setprecision(3) << std::endl;
     std::cout << "D_ Matrix Size After Adding Torque Limit Constraint: " << std::endl << D_.rows() << " x " << D_.cols() <<std::endl;
     std::cout << D_ << std::endl;
     std::cout << "d_ Matrix Size After Adding Torque Limit Constraint: " << std::endl << d_.rows() << " x " << d_.cols() << std::endl;
     std::cout << d_ << std::endl;
+//    std::cout << f_ << std::endl;
     return true;
 }
 
@@ -604,7 +694,7 @@ const Eigen::MatrixXd WholeBodyController::computeJointSpaceInertialMatrix(Posit
                                                                            JointPositions &joint_pos)
 {
     // base pose conversion
-    dwl::rbd::Vector6d base_position;
+    wbc::rbd::Vector6d base_position;
     Eigen::MatrixXd base_position_(base_pos.toImplementation());
     base_position.block(0, 0, 3, 1) = base_position_;
     // Ration from rotationQuaternion
@@ -616,6 +706,7 @@ const Eigen::MatrixXd WholeBodyController::computeJointSpaceInertialMatrix(Posit
     Eigen::VectorXd joint_position = Eigen::VectorXd(joint_pos.toImplementation());
     // compute joint space inertial matrix 18 x 18
     inertial_matrix = wdyn->computeJointSpaceInertiaMatrix(base_position, joint_position);
+    std::cout << "joint space inertia matrix:" << std::endl << inertial_matrix << std::endl;
     std::cout << "inertial matrix size: " << inertial_matrix.rows() << " x " << inertial_matrix.cols() << std::endl;
     return inertial_matrix;
 
@@ -638,7 +729,7 @@ const Eigen::VectorXd WholeBodyController::computeNonlinearEffectsForce(Position
                                                                         JointPositions &joint_pos, JointVelocities &joint_vel)
 {
     // base pose conversion
-    dwl::rbd::Vector6d base_position;
+    wbc::rbd::Vector6d base_position;
     Eigen::MatrixXd base_position_(base_pos.toImplementation());
     base_position.block(0, 0, 3, 1) = base_position_;
     // Ration from rotationQuaternion
@@ -646,7 +737,7 @@ const Eigen::VectorXd WholeBodyController::computeNonlinearEffectsForce(Position
     Eigen::MatrixXd base_rotation(base_orientation_.toImplementation());
     base_position.block(3, 0, 3, 1) = base_rotation;
     // base velocity conversion
-    dwl::rbd::Vector6d base_velocity;
+    wbc::rbd::Vector6d base_velocity;
     Eigen::MatrixXd base_linear_velocity(base_linear_vel.toImplementation());
     Eigen::MatrixXd base_angular_velocity(base_angular_vel.toImplementation());
     base_velocity.block(0, 0, 3, 1) = base_linear_velocity;
@@ -678,7 +769,7 @@ const Eigen::MatrixXd WholeBodyController::computeLegJacobian(Position &base_pos
                                                            JointPositions &joint_pos, free_gait::LimbEnum limb)
 {
     // base pose conversion
-    dwl::rbd::Vector6d base_position;
+    wbc::rbd::Vector6d base_position;
     Eigen::MatrixXd base_position_(base_pos.toImplementation());
     base_position.block(0, 0, 3, 1) = base_position_;
     // Ration from rotationQuaternion
@@ -707,10 +798,10 @@ const Eigen::MatrixXd WholeBodyController::computeLegJacobian(Position &base_pos
     int foot_id = body_id_.find(foot_name)->second;
 //    }
     std::cout << "foot_id: " << foot_id << std::endl;
-    Eigen::VectorXd q = fbs.toGeneralizedJointState(base_position, joint_position);
+    Eigen::VectorXd q = wkin->toGeneralizedJointState(base_position, joint_position);
     Eigen::MatrixXd jac(Eigen::MatrixXd::Zero(3, 18)); // only translation part
 
-    dwl::rbd::computePointJacobian(fbs.getRBDModel(),
+    wbc::rbd::computePointJacobian(rbd,
                                    q, foot_id,
                                    Eigen::Vector3d::Zero(),
                                    jac, false);
@@ -721,7 +812,7 @@ const Eigen::MatrixXd WholeBodyController::computeLegJacobian(Position &base_pos
 const Eigen::MatrixXd WholeBodyController::computeJacobian(Position &base_pos, RotationQuaternion &base_orientation, JointPositions &joint_pos, LimbSelector limb_set)
 {
     // base pose conversion
-    dwl::rbd::Vector6d base_position;
+    wbc::rbd::Vector6d base_position;
     Eigen::MatrixXd base_position_(base_pos.toImplementation());
     base_position.block(0, 0, 3, 1) = base_position_;
     // Ration from rotationQuaternion
@@ -731,10 +822,11 @@ const Eigen::MatrixXd WholeBodyController::computeJacobian(Position &base_pos, R
     // joint position conversion
     Eigen::VectorXd joint_position = Eigen::VectorXd(joint_pos.toImplementation());
 
-    dwl::rbd::BodySelector body_set;
-    body_set = limb_set;
+    wbc::rbd::BodySelector body_set;
+//    body_set = limb_set;
     ROS_INFO("start computing jacobian");
-    wkin.computeJacobian(jacobian, base_position, joint_position, body_set, dwl::rbd::Linear);
+    wkin->computeJacobian(jacobian, base_position, joint_position, limb_set);
+    std::cout << "Full jacobian: " << std::endl << jacobian << std::endl;
 
     return jacobian;
 }
@@ -759,7 +851,7 @@ void WholeBodyController::computeJdotQdot(LimbVectorXd &jacd_qd,
                                           JointPositions &joint_pos, JointVelocities &joint_vel, LimbSelector limbset)
 {
     // base pose conversion
-    dwl::rbd::Vector6d base_position;
+    wbc::rbd::Vector6d base_position;
     Eigen::MatrixXd base_position_(base_pos.toImplementation());
     base_position.block(0, 0, 3, 1) = base_position_;
     // Ration from rotationQuaternion
@@ -767,7 +859,7 @@ void WholeBodyController::computeJdotQdot(LimbVectorXd &jacd_qd,
     Eigen::MatrixXd base_rotation(base_orientation_.toImplementation());
     base_position.block(3, 0, 3, 1) = base_rotation;
     // base velocity conversion
-    dwl::rbd::Vector6d base_velocity;
+    wbc::rbd::Vector6d base_velocity;
     Eigen::MatrixXd base_linear_velocity(base_linear_vel.toImplementation());
     Eigen::MatrixXd base_angular_velocity(base_angular_vel.toImplementation());
     base_velocity.block(0, 0, 3, 1) = base_linear_velocity;
@@ -776,26 +868,30 @@ void WholeBodyController::computeJdotQdot(LimbVectorXd &jacd_qd,
     Eigen::VectorXd joint_position = Eigen::VectorXd(joint_pos.toImplementation());
     // joint velocity conversion
     Eigen::VectorXd joint_velocity = Eigen::VectorXd(joint_vel.toImplementation());
-
-    wkin.computeJdotQdot(jacd_qd, base_position, joint_position, base_velocity, joint_velocity, limbset, dwl::rbd::Linear);
+    wkin->computeJdotQdot(jacd_qd, base_position, joint_position, base_velocity, joint_velocity, limbset_);
 }
 
 bool WholeBodyController::solveOptimazation()
 {
-    ROS_INFO("Starting sloving...");
+    ROS_INFO("Starting sloving");
     if(!ooqpei::QuadraticProblemFormulation::solve(G_, S_, g_, W_, C_, c_, D_, d_, f_, x_))
     {
         ROS_ERROR("solve failed");
+        optimazationed_ = false;
         return false;
     }
 
     ROS_INFO("solve successfully");
-    std::cout << x_ << std::endl;
+    optimazationed_ = true;
+    //std::cout << x_ << std::endl;
 
     // save result into variables 6 + 12 + n_
     base_optimal_linear_acceleration = LinearAcceleration(x_.segment(0, 3));
+    ROS_INFO_STREAM("Base optimal linear acceleration: " << std::endl << base_optimal_linear_acceleration << std::endl);
     base_optimal_angular_acceleration = AngularAcceleration(x_.segment(3, 3));
+    ROS_INFO_STREAM("Base optimal angular acceleration: " << std::endl << base_optimal_angular_acceleration << std::endl);
     joint_optimal_acceleration = JointAccelerations(x_.segment(6, 12));
+    ROS_INFO_STREAM("Joint optimal acceleration: " << std::endl << joint_optimal_acceleration << std::endl);
 
 
     for(auto& legInfo : legInfos_)
@@ -810,14 +906,25 @@ bool WholeBodyController::solveOptimazation()
     return true;
 }
 
+bool WholeBodyController::resetOptimazation()
+{
+    optimazationed_ = false;
+    D_.resize(0, 0);
+    d_.resize(0);
+    f_.resize(0);
+    C_.resize(0, 0);
+    c_.resize(0);
+}
+
 const JointTorques WholeBodyController::computeFloatingBaseInverseDynamics(Position &base_pos, RotationQuaternion &base_orientation,
                                                                            LinearVelocity &base_linear_vel, LocalAngularVelocity &base_angular_vel,
                                                                            JointPositions &joint_pos, JointVelocities &joint_vel,
                                                                            LinearAcceleration &base_linear_acc, AngularAcceleration &base_angular_acc,
                                                                            JointAccelerations &joint_acc, ExternalForece &ext_force)
 {
+    ROS_INFO("Computing floating base inverse dynamics");
     // base pose conversion
-    dwl::rbd::Vector6d base_position;
+    wbc::rbd::Vector6d base_position;
     Eigen::MatrixXd base_position_(base_pos.toImplementation());
     base_position.block(0, 0, 3, 1) = base_position_;
     // Ration from rotationQuaternion
@@ -825,7 +932,7 @@ const JointTorques WholeBodyController::computeFloatingBaseInverseDynamics(Posit
     Eigen::MatrixXd base_rotation(base_orientation_.toImplementation());
     base_position.block(3, 0, 3, 1) = base_rotation;
     // base velocity conversion
-    dwl::rbd::Vector6d base_velocity;
+    wbc::rbd::Vector6d base_velocity;
     Eigen::MatrixXd base_linear_velocity(base_linear_vel.toImplementation());
     Eigen::MatrixXd base_angular_velocity(base_angular_vel.toImplementation());
     base_velocity.block(0, 0, 3, 1) = base_linear_velocity;
@@ -835,7 +942,7 @@ const JointTorques WholeBodyController::computeFloatingBaseInverseDynamics(Posit
     // joint velocity conversion
     Eigen::VectorXd joint_velocity = Eigen::VectorXd(joint_vel.toImplementation());
     // base acceleration conversion
-    dwl::rbd::Vector6d base_acceleration;
+    wbc::rbd::Vector6d base_acceleration;
     Eigen::MatrixXd base_acceleration_l(base_linear_acc.toImplementation());
     base_acceleration.block(0, 0, 3, 1) = base_acceleration_l;
     Eigen::MatrixXd base_acceleration_w(base_angular_acc.toImplementation());
@@ -843,7 +950,7 @@ const JointTorques WholeBodyController::computeFloatingBaseInverseDynamics(Posit
     // joint acceleration conversion
     Eigen::VectorXd joint_acceleration = Eigen::VectorXd(joint_acc.toImplementation());
     // external force conversion
-    dwl::rbd::BodyVector6d grf_;
+    wbc::rbd::BodyVector6d grf_;
     Eigen::Vector3d grf_1 = Vector3d(ext_force.at(free_gait::LimbEnum::LF_LEG).toImplementation());
     grf_["lf_foot"] << 0, 0, 0, grf_1[0], grf_1[1], grf_1[2];
     Eigen::Vector3d grf_2 = Vector3d(ext_force.at(free_gait::LimbEnum::RF_LEG).toImplementation());
@@ -887,9 +994,25 @@ const JointTorques WholeBodyController::getFeedforwardJointTorque()
                                                        joint_position, joint_velocity,
                                                        base_optimal_linear_acceleration_, base_optimal_angular_acceleration_,
                                                        joint_optimal_acceleration_, optimal_ground_force_);
+
     return joint_torque_;
 }
 
+void WholeBodyController::setLimbJointTorque()
+{
+    JointTorques all_joint_torque_;
+    all_joint_torque_ = getFeedforwardJointTorque();
+
+    JointTorquesLimb lf_torque = JointTorquesLimb(all_joint_torque_(0), all_joint_torque_(1), all_joint_torque_(2));
+    JointTorquesLimb rf_torque = JointTorquesLimb(all_joint_torque_(3), all_joint_torque_(4), all_joint_torque_(5));
+    JointTorquesLimb lh_torque = JointTorquesLimb(all_joint_torque_(6), all_joint_torque_(7), all_joint_torque_(8));
+    JointTorquesLimb rh_torque = JointTorquesLimb(all_joint_torque_(9), all_joint_torque_(10), all_joint_torque_(11));
+
+    robot_state_->setJointEffortsForLimb(free_gait::LimbEnum::LF_LEG, lf_torque);
+    robot_state_->setJointEffortsForLimb(free_gait::LimbEnum::RF_LEG, rf_torque);
+    robot_state_->setJointEffortsForLimb(free_gait::LimbEnum::LH_LEG, lh_torque);
+    robot_state_->setJointEffortsForLimb(free_gait::LimbEnum::RH_LEG, rh_torque);
 }
 
-//PLUGINLIB_EXPORT_CLASS(balance_controller::WholeBodyController, controller_interface::ControllerBase)
+}
+PLUGINLIB_EXPORT_CLASS(balance_controller::WholeBodyController, controller_interface::ControllerBase)

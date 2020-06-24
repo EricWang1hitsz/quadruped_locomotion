@@ -11,11 +11,11 @@
 #include "Eigen/LU"
 #include <memory>
 #include <geometry_msgs/Accel.h>
-// dwl
-#include <model/WholeBodyKinematics.h>
-#include <model/WholeBodyDynamics.h>
-#include <model/FloatingBaseSystem.h>
-#include <utils/RigidBodyDynamics.h>
+// whole body model
+#include <WholeBodyKinematic.h>
+#include <WholeBodyDynamic.h>
+#include <RigidBodyDynamics.h>
+#include <utils/URDF.h>
 // free_gait
 #include <free_gait_core/TypeDefs.hpp>
 #include <free_gait_core/executor/State.hpp>
@@ -23,9 +23,11 @@
 #include "sim_assiants/FootContacts.h"
 // ros controller
 #include <ros/ros.h>
+#include <ros/package.h>
 #include "controller_interface/controller.h"
 #include "balance_controller/ros_controler/robot_state_interface.hpp"
 #include "balance_controller/ros_controler/gazebo_state_hardware_interface.hpp"
+#include <pluginlib/class_list_macros.hpp>
 // solver
 #include "ooqp_eigen_interface/QuadraticProblemFormulation.hpp"
 #include "ooqp_eigen_interface/OoqpEigenInterface.hpp"
@@ -34,22 +36,27 @@ using namespace std;
 using namespace romo;
 using namespace quadruped_model;
 
+
+
 namespace balance_controller {
+
+typedef std::unordered_map<free_gait::LimbEnum, bool, EnumClassHash> LimbFlag;
+typedef std::unordered_map<free_gait::LimbEnum, free_gait::Vector, EnumClassHash> LimbVector;
+typedef std::vector<free_gait::LimbEnum> LimbSet; // LF RF LH RH
+typedef std::vector<free_gait::BranchEnum> BranchSet;
+typedef std::vector<std::string> LimbSelector;
+typedef std::map<std::string, Eigen::VectorXd> LimbVectorXd;
+typedef std::map<free_gait::LimbEnum, Force> ExternalForece;
 
 class WholeBodyController : public controller_interface::Controller<hardware_interface::RobotStateInterface>
 {
-    typedef std::unordered_map<free_gait::LimbEnum, bool, EnumClassHash> LimbFlag;
-    typedef std::unordered_map<free_gait::LimbEnum, free_gait::Vector, EnumClassHash> LimbVector;
-    typedef std::vector<free_gait::LimbEnum> LimbSet; // LF RF LH RH
-    typedef std::vector<free_gait::BranchEnum> BranchSet;
-    typedef std::vector<std::string> LimbSelector;
-    typedef std::map<std::string, Eigen::VectorXd> LimbVectorXd;
-    typedef std::map<free_gait::LimbEnum, Force> ExternalForece;
+
 
 public:
 
     WholeBodyController();
-    WholeBodyController(std::shared_ptr<free_gait::State> robot_state);
+//    WholeBodyController(const ros::NodeHandle& node_handle,
+//           std::shared_ptr<free_gait::State> robot_state);
     ~WholeBodyController();
 
 
@@ -78,9 +85,13 @@ public:
 
     void stopping(const ros::Time& time);
 
+    bool loadModelFromURDF();
+
     bool prepareOptimazation(const LinearAcceleration& linear_a, const AngularAcceleration& angular_a);
 
     bool solveOptimazation();
+
+    bool resetOptimazation();
 
     bool addPhysicalConsistencyConstraints();
 
@@ -141,7 +152,13 @@ public:
                                                              JointAccelerations& joint_acc, ExternalForece& ext_force);
     const JointTorques getFeedforwardJointTorque();
 
+    void setLimbJointTorque();
+
+    bool optimazationed_;
+
 private:
+
+    ros::NodeHandle node_handle_;
 
     // Number of legs in stance phase
     int nLegsInForceDistribution_;
@@ -157,7 +174,6 @@ private:
     Eigen::VectorXd maxTorque_;
     // The matrix G in the optimization formulation (nElementsInStackedVirtualForceTorqueVector_ x n).
     Eigen::SparseMatrix<double, Eigen::RowMajor> G_; // todo when can use sparseMatrix?
-//    Eigen::MatrixXd G_;
     // The vector g in the optimization formulation (stacked vector of reference linear acceleration and angular acceleration).
     Eigen::VectorXd g_;
     // Stacked generalized accelerations and the contact forces as decision variables. (size of 6 + 12 + 3 x nLegsInForceDistribution_)
@@ -171,25 +187,21 @@ private:
     Eigen::DiagonalMatrix<double, Eigen::Dynamic> S_; // 6 x 6
     // Inequality constraint matrix
     Eigen::SparseMatrix<double, Eigen::RowMajor> D_;
-//    Eigen::MatrixXd D_;
     // Upper and lower limits vectors of inequality constraint
     Eigen::VectorXd d_, f_;
     // Equality constraint matrix
     Eigen::SparseMatrix<double, Eigen::RowMajor> C_;
-//    Eigen::MatrixXd C_;
     // Vector of equality constraint
     Eigen::VectorXd c_;
 
-
     // whole body model
-    dwl::WholeBodyState ws;
-    dwl::model::FloatingBaseSystem fbs;
-    dwl::model::WholeBodyKinematics wkin;
-//    dwl::model::WholeBodyDynamics wdyn;
-    dwl::rbd::BodyID body_id_;
+    //wbc::WholeBodyKinematic wkin;
+    std::shared_ptr<wbc::WholeBodyKinematic> wkin;
+    std::shared_ptr<wbc::WholeBodyDynamic> wdyn;
+    //wbc::WholeBodyDynamic wdyn;
+    wbc::rbd::BodyID body_id_;
 
-    std::shared_ptr<dwl::model::WholeBodyDynamics> wdyn;
-
+    RigidBodyDynamics::Model rbd;
 
     // robot dynamics
     // M(q)
@@ -237,16 +249,16 @@ private:
     unsigned int n_joints;
 
     // PD acceleration gain
-//    Eigen::Matrix3d Kr, Dr, Kw, Dw;
+    //Eigen::Matrix3d Kr, Dr, Kw, Dw;
     Eigen::Vector3d Kr, Dr, Kw, Dw;
 
     // free_gait
-
     LimbFlag real_contact_;
     LimbVector real_contact_force_;
-    LimbSet limbs_;
-    BranchSet branches_;
-    LimbSelector limbset_;
+    std::vector<std::string> limbset_;
+    std::vector<free_gait::LimbEnum> limbs_; // LF RF LH RH
+    std::vector<free_gait::BranchEnum> branches_;
+
 
 
 };

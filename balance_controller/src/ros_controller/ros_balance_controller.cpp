@@ -80,7 +80,7 @@ namespace balance_controller{
     ROS_INFO("Initializing RosBalanceController");
     //! WSHY: base balance QP controller
     //! eric_wang: Base balance QP controller for support leg.
-    contact_distribution_.reset(new ContactForceDistribution(node_handle, robot_state));
+    contact_distribution_.reset(new ContactForceDistribution(node_handle, robot_state));// Initialize share_ptr
     virtual_model_controller_.reset(new VirtualModelController(node_handle, robot_state, contact_distribution_));
     //! WSHY: single leg controller
     //! eric_wang: Single leg controller for swing leg.

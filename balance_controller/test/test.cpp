@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
   controller_loader.reset(new pluginlib::ClassLoader<controller_interface::ControllerBase>(
                             "balance_controller", "controller_interface::ControllerBase"));
   boost::shared_ptr<controller_interface::ControllerBase> controller;
+  ROS_INFO("Creat an instance of Balance Controller ");
   controller = controller_loader->createInstance("balance_controller/RosBalanceController");
 
   hardware_interface::RobotStateHandle::Data robot_data;

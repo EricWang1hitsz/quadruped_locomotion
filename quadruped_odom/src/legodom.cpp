@@ -45,7 +45,7 @@ QuadrupedEstimation::QuadrupedEstimation(const ros::NodeHandle& _nodehandle,
 
     imuvel_pub = nodeHandle_.advertise<geometry_msgs::Twist>("/imu_vel",10);
 
-
+    ROS_INFO("Successfully initialized quadruped estimation class ");
 }
 
 QuadrupedEstimation::QuadrupedEstimation(const ros::NodeHandle& _nodehandle)
@@ -112,6 +112,7 @@ void QuadrupedEstimation::imuCb(const sensor_msgs::Imu::ConstPtr& imu_msg){
 
 }
 
+// no use in real robot
 void QuadrupedEstimation::jointsCb(const sensor_msgs::JointState::ConstPtr& joint_msg){
 
 //    for(int i=0; i< 16; ++i){
@@ -136,13 +137,14 @@ void QuadrupedEstimation::jointsCb(const sensor_msgs::JointState::ConstPtr& join
 //    robot_state_->setCurrentLimbJointVelocities(jointsvel_all);
 
 }
+//eric_wang: Set foot contact state in stateEstimateController.
 void QuadrupedEstimation::setFootState(const std_msgs::Float64MultiArray& foot_msg){
 
 //    ROS_WARN("get foot_msg");
     foot_output = foot_msg;
     foot_cb_flag = true;
 }
-
+// no use in real robot
 void QuadrupedEstimation::footstateCb(const std_msgs::Float64MultiArray::ConstPtr& foot_msg){
 
 //    ROS_WARN("get foot_msg");

@@ -1,44 +1,22 @@
-cmake_minimum_required(VERSION 2.8.3)
-project(balance_controller)
+cmake_minimum_required(VERSION 3.0.2)
+project(laikago_ros_control)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
- add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
-  qp_solver
   roscpp
-  free_gait_core
-  quadruped_model
-  quadruped_odom
-  free_gait_ros
-  controller_interface
-  pluginlib
-  gazebo_dev
-  control_toolbox
   controller_manager
+  control_toolbox
+  pluginlib
   hardware_interface
-  transmission_interface
-  urdf
-  joint_limits_interface
-  gazebo_ros_control
-  forward_command_controller
-  realtime_tools
-  sim_assiants
-  ooqp_eigen_interface
-  single_leg_test
-  ros_ethercat_driver
-  dynamic_reconfigure
-  whole_body_model
+  controller_interface
   laikago_msgs
-  laikago_ros_control
+  urdf
 )
-
-find_package(RBDL REQUIRED)
-find_package(RBDL COMPONENTS URDFReader REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -115,11 +93,10 @@ find_package(RBDL COMPONENTS URDFReader REQUIRED)
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
- generate_dynamic_reconfigure_options(
+# generate_dynamic_reconfigure_options(
 #   cfg/DynReconf1.cfg
 #   cfg/DynReconf2.cfg
-  cfg/controller_gains.cfg
- )
+# )
 
 ###################################
 ## catkin specific configuration ##
@@ -132,29 +109,8 @@ find_package(RBDL COMPONENTS URDFReader REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  ${EIGEN3_INCLUDE_DIR}
-  LIBRARIES balance_controller gazebo_state_hardware_interface robot_state_gazebo_ros_control_plugin
-  CATKIN_DEPENDS
-  qp_solver
-  roscpp
-  free_gait_core
-  quadruped_model
-  quadruped_odom
-  free_gait_ros
-  controller_interface
-  pluginlib
-  gazebo_dev
-  control_toolbox
-  controller_manager
-  hardware_interface
-  transmission_interface
-  urdf
-  joint_limits_interface
-  gazebo_ros_control
-  forward_command_controller
-  realtime_tools
-  sim_assiants
-  ooqp_eigen_interface
+  LIBRARIES robot_state_lcm_hardware_interface
+  CATKIN_DEPENDS roscpp controller_manager hardware_interface laikago_msgs
 #  DEPENDS system_lib
 )
 
@@ -168,68 +124,21 @@ include_directories(
   include
   /home/laikago/catkin_ws/src/laikago_sdk/include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
-  ${RBDL_INCLUDE_DIRS}
+  ${balance_controller_INCLUDE_DIRS}
 )
-## Laikago SDK
+
+## Laikago sdk
 link_directories(/home/laikago/catkin_ws/src/laikago_sdk/lib)
 set(EXTRA_LIBS liblaikago_comm.so lcm)
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME}
-   src/motion_control/MotionControllerBase.cpp
-   src/motion_control/VirtualModelController.cpp
-   src/contact_force_distribution/ContactForceDistributionBase.cpp
-   src/contact_force_distribution/ContactForceDistribution.cpp
-   src/state_switcher/StateSwitcher.cpp
-   src/state_switcher/StateSwitcherBase.cpp
-#   src/ros_controller/ros_balance_controller.cpp
-#   src/ros_controller/gazebo_state_hardware_interface.cpp
-#   include/balance_controller/contact_force_distribution/ContactForceDistributionBase.hpp
- )
-add_library(gazebo_state_hardware_interface
-    src/ros_controller/gazebo_state_hardware_interface.cpp
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/laikago_ros_control.cpp
+# )
+add_library(robot_state_lcm_hardware_interface
+    src/robot_state_lcm_hardware_interface.cpp
   )
-target_link_libraries(gazebo_state_hardware_interface ${catkin_LIBRARIES})
-
-add_library(ros_balance_controller
-  src/ros_controller/ros_balance_controller.cpp
-  )
-target_link_libraries(ros_balance_controller balance_controller ${catkin_LIBRARIES})
-
-add_library(whole_body_controller
-  src/ros_controller/whole_body_controller.cpp
-  )
-target_link_libraries(whole_body_controller balance_controller ${catkin_LIBRARIES})
-
-add_library(robot_state_gazebo_ros_control_plugin
-    src/ros_controller/robot_state_gazebo_ros_control_plugin.cpp
-  )
-target_link_libraries(robot_state_gazebo_ros_control_plugin
-  ${catkin_LIBRARIES}
-  gazebo_state_hardware_interface
-  )
-
-add_library(state_estimate_controller
-  src/ros_controller/state_estimate_controller.cpp
-  )
-target_link_libraries(state_estimate_controller
-  ${catkin_LIBRARIES}
-  )
-
-  add_library(single_leg_controller
-    src/ros_controller/single_leg_controller.cpp
-    )
-  target_link_libraries(single_leg_controller
-    ${catkin_LIBRARIES}
-    )
-
-#add_library(joint_torque_controller src/ros_controller/joint_torque_controller.cpp)
-#target_link_libraries(joint_torque_controller
-#  ${catkin_LIBRARIES}
-#  )
-
-
+target_link_libraries(robot_state_lcm_hardware_interface ${EXTRA_LIBS} ${catkin_LIBRARIES} )
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
@@ -238,11 +147,11 @@ target_link_libraries(state_estimate_controller
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/balance_controller_node.cpp)
-add_executable(balance_controller_test_node test/test.cpp)
-add_executable(balance_controller_manager src/ros_controller/balance_controller_manager.cpp)
-add_executable(laikago_controller_manager_test src/ros_controller/laikago_controller_manager_test.cpp)
-#add_executable(whole_body_controller_test test/whole_body_controller_test.cpp)
+# add_executable(${PROJECT_NAME}_node src/laikago_ros_control_node.cpp)
+add_executable(laikago_controller_manager src/laikago_controller_manager.cpp)
+target_link_libraries(laikago_controller_manager
+                    ${EXTRA_LIBS} ${catkin_LIBRARIES}
+                    robot_state_lcm_hardware_interface)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -257,28 +166,6 @@ add_executable(laikago_controller_manager_test src/ros_controller/laikago_contro
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(balance_controller_test_node
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  )
-target_link_libraries(balance_controller_manager
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${EXTRA_LIBS}
-  )
-
-target_link_libraries(laikago_controller_manager_test
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-  ${EXTRA_LIBS}
-  )
-#target_link_libraries(whole_body_controller_test
-#    whole_body_controller
-#    ${PROJECT_NAME}
-#    ${catkin_LIBRARIES}
-#    ${RBDL_LIBRARY}
-#    ${RBDL_URDFReader_LIBRARY}
-#  )
 
 #############
 ## Install ##
@@ -289,22 +176,29 @@ target_link_libraries(laikago_controller_manager_test
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
+# catkin_install_python(PROGRAMS
 #   scripts/my_python_script
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
-## Mark executables and/or libraries for installation
- install(TARGETS ${PROJECT_NAME}
+## Mark executables for installation
+## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
+# install(TARGETS ${PROJECT_NAME}_node
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+
+## Mark libraries for installation
+## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
+ install(TARGETS robot_state_lcm_hardware_interface #${PROJECT_NAME}
    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
  )
 
 ## Mark cpp header files for installation
- install(DIRECTORY include/${PROJECT_NAME}
+ install(DIRECTORY include/${PROJECT_NAME}/
    DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.hpp"
+#   FILES_MATCHING PATTERN "*.h"
 #   PATTERN ".svn" EXCLUDE
  )
 
@@ -320,13 +214,10 @@ target_link_libraries(laikago_controller_manager_test
 #############
 
 ## Add gtest based cpp test target and link libraries
- catkin_add_gtest(${PROJECT_NAME}-test
-   test/test_balance_controller.cpp
-   test/virtual_model_controller_test.cpp
-   )
- if(TARGET ${PROJECT_NAME}-test)
-   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME} ${catkin_LIBRARIES})
- endif()
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_laikago_ros_control.cpp)
+# if(TARGET ${PROJECT_NAME}-test)
+#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+# endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)

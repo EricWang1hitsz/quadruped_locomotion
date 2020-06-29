@@ -6,6 +6,15 @@
       <description>A gazebo interface with robot state .</description>
     </class>
   </library>
+
+  <library path="lib/librobot_state_lcm_hardware_interface">
+    <class name="balance_controller/RobotStateLcmHardwareInterface"
+           type="balance_controller::RobotStateLcmHardwareInterface"
+           base_class_type="hardware_interface::RobotHW">
+      <description>A lcm communication interface with robot state .</description>
+    </class>
+  </library>
+
   <library path="lib/libros_balance_controller">
     <class name="balance_controller/RosBalanceController"
            type="balance_controller::RosBalanceController"

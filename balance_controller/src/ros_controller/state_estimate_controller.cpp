@@ -93,9 +93,10 @@ bool StateEstimateController::init(hardware_interface::RobotStateInterface* hard
           ROS_ERROR_STREAM("List of joint names is empty.");
           return false;
     }
-
+    ROS_INFO("get robot state handle ");
     //! WSHY: get robot state handle
-    robot_state_handle = hardware->getHandle("base_controller");
+    robot_state_handle = hardware->getHandle("base_control");
+    ROS_WARN("Gotten robot state handle ");
     for(int i = 0;i<4;i++)
       robot_state_handle.foot_contact_[i] = 1;
 //    int i = 0;
@@ -176,6 +177,7 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
     for(unsigned int i=0; i<12; i++)
       {
         all_joint_positions(i) = robot_state_handle.getJointPositionRead()[i];
+        ROS_INFO_STREAM("joint 2 position: " << robot_state_handle.getJointPositionRead()[2] << std::endl);
         all_joint_velocities(i) = robot_state_handle.getJointVelocityRead()[i];
         all_joint_efforts(i) = robot_state_handle.getJointEffortRead()[i];
 //        ROS_INFO("Joint %d Position is : %f", i, all_joint_positions(i));
@@ -243,6 +245,7 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
 //        std::cout<<"foot "<<i<<" contact state "<<robot_state_handle.foot_contact_[i]<<std::endl;
 
       }
+      //eric_wang: set foot contact state for legodom.
       LegOdom->setFootState(foot_msg);
       robot_state_.lf_leg_mode.support_leg = real_contact_.at(free_gait::LimbEnum::LF_LEG);
       robot_state_.rf_leg_mode.support_leg = real_contact_.at(free_gait::LimbEnum::RF_LEG);
@@ -367,12 +370,14 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
     robot_state_.lh_leg_joints.effort[2] = all_joint_efforts(11);
 
 
-
+    //eric_wang: get base state info from legodom
     kindr_ros::convertToRosGeometryMsg(LegOdom->odom_position, robot_state_.base_pose.pose.pose.position);
     kindr_ros::convertToRosGeometryMsg(LegOdom->odom_orientation, robot_state_.base_pose.pose.pose.orientation);
     kindr_ros::convertToRosGeometryMsg(LegOdom->odom_vel, robot_state_.base_pose.twist.twist.linear);
     robot_state_.base_pose.twist.twist.angular = LegOdom->imu_output.angular_velocity;
-    robot_state_.base_pose.child_frame_id = "/base_link";
+    //robot_state_.base_pose.child_frame_id = "/base_link";
+    //laikago coordination.
+    robot_state_.base_pose.child_frame_id = "/base";
     robot_state_.base_pose.header.frame_id = "/odom";
     robot_state_.base_pose.header.stamp = ros::Time::now();
 

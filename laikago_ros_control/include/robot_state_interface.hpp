@@ -170,6 +170,7 @@ public:
    * RobotStateInterface for command updating to joints
    */
   hardware_interface::JointCommandInterface joint_effort_interfaces_;
+  hardware_interface::JointStateHandle joint_state_interfaces_;
 };
 
 }

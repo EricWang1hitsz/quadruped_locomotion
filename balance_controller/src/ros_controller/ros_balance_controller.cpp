@@ -154,6 +154,7 @@ namespace balance_controller{
 //          joints.push_back(hardware->getHandle(joint_names[i]));
           joints.push_back(hardware->joint_effort_interfaces_.getHandle(joint_names[i]));
           position_joints.push_back(hardware->joint_position_interfaces_.getHandle(joint_names[i]));
+
           ROS_INFO("Get '%s' Handle", joint_names[i].c_str());
 //          hardware->g
         } catch (const hardware_interface::HardwareInterfaceException& ex) {

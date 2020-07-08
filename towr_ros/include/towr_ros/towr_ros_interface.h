@@ -115,6 +115,8 @@ private:
   // publish trajectory to the controller.
   ros::Publisher trajectory_pub_;
   void PublishTrajectoryToController();
+  // Send trajectory to laikago controller
+  void PublishTrajectorytoLaikagoController();
 
   void UserCommandCallback(const TowrCommandMsg& msg);
   void InitialStateCallback(const free_gait_msgs::RobotStateConstPtr& robot_state_msg);

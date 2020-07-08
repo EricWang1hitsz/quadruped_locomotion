@@ -72,6 +72,7 @@ struct RobotModel {
                Hyq,     ///< four-legged robot from IIT
                Anymal,  ///< four-legged robot from Anybotics
                Quadruped, //! eric_wang: Our own quadruped robot for Hitsz
+               Laikago, //! Laikago from YuShu company
                ROBOT_COUNT };
 
 
@@ -89,7 +90,8 @@ const static std::map<RobotModel::Robot, std::string> robot_names =
   {RobotModel::Biped,   "Biped"},
   {RobotModel::Hyq,     "Hyq"},
   {RobotModel::Anymal,  "Anymal"},
-  {RobotModel::Quadruped, "Quadruped"}
+  {RobotModel::Quadruped, "Quadruped"},
+  {RobotModel::Laikago, "Laikago"}
 };
 
 } /* namespace towr */

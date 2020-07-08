@@ -42,16 +42,22 @@ BaseMotionConstraint::BaseMotionConstraint (double T, double dt,
   base_linear_  = spline_holder.base_linear_;
   base_angular_ = spline_holder.base_angular_;
 
-  double dev_rad = 0.05;
+//  double dev_rad = 0.05;
+  double dev_rad = 0.00;
   node_bounds_.resize(k6D);
   node_bounds_.at(AX) = Bounds(-dev_rad, dev_rad);
+//  node_bounds_.at(AX) = Bounds(-0.1, -0.1);
   node_bounds_.at(AY) = Bounds(-dev_rad, dev_rad);
-  node_bounds_.at(AZ) = ifopt::NoBound;//Bounds(-dev_rad, dev_rad);
+  //node_bounds_.at(AZ) = ifopt::NoBound;//Bounds(-dev_rad, dev_rad);
+  node_bounds_.at(AZ) = Bounds(-dev_rad, dev_rad);
 
   double z_init = base_linear_->GetPoint(0.0).p().z();
   node_bounds_.at(LX) = ifopt::NoBound;
   node_bounds_.at(LY) = ifopt::NoBound;//Bounds(-0.05, 0.05);
-  node_bounds_.at(LZ) = Bounds(z_init-0.02, z_init+0.1); // allow to move dev_z cm up and down
+  //node_bounds_.at(LX) =  Bounds(-dev_rad, dev_rad);
+  //node_bounds_.at(LY) =  Bounds(-dev_rad, dev_rad);
+  //node_bounds_.at(LZ) = Bounds(z_init-0.02, z_init+0.1); // allow to move dev_z cm up and down
+  node_bounds_.at(LZ) = Bounds(z_init, z_init);
 
   int n_constraints_per_node = node_bounds_.size();
   SetRows(GetNumberOfNodes()*n_constraints_per_node);

@@ -78,6 +78,7 @@ namespace balance_controller {
      */
     std::vector<hardware_interface::JointHandle> joints;
     std::vector<hardware_interface::JointHandle> position_joints;
+    std::vector<hardware_interface::JointStateHandle> joint_state;
 //    std::vector<hardware_interface::RobotStateHandle> joints;
     /**
      * @brief robot_state_handle, handle robot state

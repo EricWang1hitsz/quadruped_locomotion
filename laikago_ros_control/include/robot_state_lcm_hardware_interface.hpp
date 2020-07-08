@@ -18,6 +18,8 @@
 #include <angles/angles.h>
 #include <pluginlib/class_list_macros.h>
 #include <ros/callback_queue.h>
+#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/JointState.h>
 
 // URDF
 #include <urdf/model.h>
@@ -55,6 +57,12 @@ public:
 
   void update_loop();
 
+  bool loadParameters(ros::NodeHandle& nh);
+
+  //Convert laikago Imu data into sensor_msgs::IMU data
+  const sensor_msgs::Imu getImuMsgs(laikago_msgs::LowState& low_state);
+
+  const sensor_msgs::JointState getJointStateMsgs(laikago_msgs::LowState& lowstate);
 
   //bool loadParameters(ros::NodeHandle& nh);
   //bool checkPositionLimits(const int index, const double position);
@@ -133,6 +141,11 @@ private:
   laikago::HighCmd SendHighLCM;
   laikago::HighState RecvHighLCM;
   laikago::LCM roslcm;
+
+  //Publish IMU data
+  ros::Publisher Imu_data_pub_;
+  ros::Publisher joint_state_pub_;
+  std::string imu_topic_name_;
 
 };
 

@@ -4,11 +4,14 @@
   <arg name="kinect_enabled" default="true"/>
   <arg name="robot_namespace" default="/"/>
 
-  <param name="robot_description" command="$(find xacro)/xacro '$(find simpledog)/urdf/quadruped_model.urdf.xacro'
-  --inorder
+  <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find simpledog)/urdf/quadruped_model.urdf.xacro'
+  inorder
   robot_namespace:=$(arg robot_namespace)
-  kinect_enabled:=$(arg kinect_enabled)"/>
+  kinect_enabled:=$(arg kinect_enabled)"/> -->
+  <arg name="user_debug" default="false"/>
 
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find laikago_description)/robot/robot.xacro'
+          DEBUG:=$(arg user_debug)"/>
   <param name="/free_gait/robot_state" value="/legodom/robot_states" />
   <!--<param name="robot_description" textfile="$(find simpledog)/urdf/simpledog.urdf.xacro"/>-->
 
@@ -39,15 +42,15 @@
 
 <!-- Spawn controllers -->
 <node name="base_controller_spawner" pkg="controller_manager" type="spawner"
-      args="--stopped state_estimate_update" />
+      args=" state_estimate_update" />
 
 <node name="laikago_controller_manager" pkg="laikago_ros_control" type="laikago_controller_manager" args="" output="screen" respawn="false">
 
 </node>
 <!--get joint states and pub the robot tf-->
 <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
-  <param name="publish_frequency" type="double" value="50.0" />
-  <param name="ignore_timestamp" type="bool" value="false" />
+    <param name="publish_frequency" type="double" value="1000.0"/>
+    <param name="ignore_timestamp" type= "bool" value="true" />
 </node>
 
 <!-- Spawn robot in gazebo (the world file has already include the robot)-->

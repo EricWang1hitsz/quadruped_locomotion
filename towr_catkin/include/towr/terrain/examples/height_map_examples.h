@@ -63,7 +63,7 @@ private:
   //-------------------------------------------------------
   //! Question When and Where using these information?
   //-------------------------------------------------------
-  double block_start = 0.7;
+  double block_start = 0.3;
   double length_     = 3.5;
   double height_     = 0.25; // [m]
 
@@ -79,10 +79,10 @@ public:
   double GetHeight(double x, double y) const override;
 
 private:
-  double first_step_start_  = 1.0;
+  double first_step_start_  = 0.3;
   double first_step_width_  = 0.4;
-  double height_first_step  = 0.2;
-  double height_second_step = 0.4;
+  double height_first_step  = 0.05;
+  double height_second_step = 0.10;
   double width_top = 1.0;
 };
 

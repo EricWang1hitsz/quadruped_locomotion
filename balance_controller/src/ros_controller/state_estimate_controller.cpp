@@ -89,13 +89,30 @@ bool StateEstimateController::init(hardware_interface::RobotStateInterface* hard
         return false;
       }
     n_joints = joint_names.size();
+    ROS_WARN_STREAM("number of joints: " << n_joints << std::endl);
     if(n_joints == 0){
           ROS_ERROR_STREAM("List of joint names is empty.");
           return false;
     }
+
+//    for(unsigned int i = 0; i < n_joints; i++)
+//      {
+//        try {
+//          //joints.push_back(hardware->joint_effort_interfaces_.getHandle(joint_names[i]));
+//          //position_joints.push_back(hardware->joint_position_interfaces_.getHandle(joint_names[i]));
+//            std::cout << "joint name is " << joint_names[i] << std::endl;
+//          joint_state.push_back(hardware->getHandle(joint_names[i]));
+//          ROS_INFO("Get '%s' Handle", joint_names[i].c_str());
+////          hardware->g
+//        } catch (const hardware_interface::HardwareInterfaceException& ex) {
+//          ROS_ERROR_STREAM("Exception thrown : "<< ex.what());
+//          return false;
+//        }
+//    }
+    ROS_WARN("get joint state handle");
     ROS_INFO("get robot state handle ");
     //! WSHY: get robot state handle
-    robot_state_handle = hardware->getHandle("base_control");
+    robot_state_handle = hardware->getHandle("base_controller");
     ROS_WARN("Gotten robot state handle ");
     for(int i = 0;i<4;i++)
       robot_state_handle.foot_contact_[i] = 1;
@@ -177,16 +194,16 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
     for(unsigned int i=0; i<12; i++)
       {
         all_joint_positions(i) = robot_state_handle.getJointPositionRead()[i];
-        ROS_INFO_STREAM("joint 2 position: " << robot_state_handle.getJointPositionRead()[2] << std::endl);
+        //ROS_INFO_STREAM("joint 2 position: " << robot_state_handle.getJointPositionRead()[2] << std::endl);
         all_joint_velocities(i) = robot_state_handle.getJointVelocityRead()[i];
         all_joint_efforts(i) = robot_state_handle.getJointEffortRead()[i];
 //        ROS_INFO("Joint %d Position is : %f", i, all_joint_positions(i));
       }
 
-    robot_state_.lf_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[0];
-    robot_state_.rf_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[1];
-    robot_state_.rh_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[2];
-    robot_state_.lh_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[3];
+//    robot_state_.lf_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[0];
+//    robot_state_.rf_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[1];
+//    robot_state_.rh_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[2];
+//    robot_state_.lh_target.target_force[0].vector.z = robot_state_handle.contact_pressure_[3];
 
 // TODO: call a state estimate method to calculate the pose estimate of robot.
     for(int i=0;i<12;++i){
@@ -251,20 +268,6 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
       robot_state_.rf_leg_mode.support_leg = real_contact_.at(free_gait::LimbEnum::RF_LEG);
       robot_state_.rh_leg_mode.support_leg = real_contact_.at(free_gait::LimbEnum::RH_LEG);
       robot_state_.lh_leg_mode.support_leg = real_contact_.at(free_gait::LimbEnum::LH_LEG);
-    //!!!频率控制，保证每秒钟处理的image不多于FREQ，这里将平率控制在10hz以内
-//    if (round(1.0 * pub_count / (img_msg->header.stamp.toSec() - first_image_time)) <= FREQ)
-//    {
-//        PUB_THIS_FRAME = true;
-//        // reset the frequency control
-//        //重置
-//        if (abs(1.0 * pub_count / (img_msg->header.stamp.toSec() - first_image_time) - FREQ) < 0.01 * FREQ)
-//        {
-//            first_image_time = img_msg->header.stamp.toSec();
-//            pub_count = 0;
-//        }
-//    }
-//    else
-//        PUB_THIS_FRAME = false;
 
     if(LegOdom->ProcessSensorData()){
 //        ROS_WARN("Get updata state estimation...");
@@ -377,7 +380,7 @@ void StateEstimateController::update(const ros::Time& time, const ros::Duration&
     robot_state_.base_pose.twist.twist.angular = LegOdom->imu_output.angular_velocity;
     //robot_state_.base_pose.child_frame_id = "/base_link";
     //laikago coordination.
-    robot_state_.base_pose.child_frame_id = "/base";
+    robot_state_.base_pose.child_frame_id = "trunk";
     robot_state_.base_pose.header.frame_id = "/odom";
     robot_state_.base_pose.header.stamp = ros::Time::now();
 

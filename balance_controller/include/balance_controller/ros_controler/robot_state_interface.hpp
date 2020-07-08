@@ -188,6 +188,7 @@ public:
    */
   hardware_interface::JointCommandInterface joint_effort_interfaces_;
   hardware_interface::JointCommandInterface joint_position_interfaces_;
+  hardware_interface::JointStateInterface joint_state_interfaces_;
 };
 
 }

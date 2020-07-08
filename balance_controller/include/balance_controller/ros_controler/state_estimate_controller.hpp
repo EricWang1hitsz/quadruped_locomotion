@@ -9,7 +9,9 @@
 #pragma once
 
 #include "controller_interface/controller.h"
-#include "balance_controller/ros_controler/robot_state_interface.hpp"
+//#include "balance_controller/ros_controler/robot_state_interface.hpp"
+//#include <ros_ethercat_driver/hardware_interface/robot_state_interface.hpp>
+#include <robot_state_interface.hpp> // laikago_ros_control
 #include <pluginlib/class_list_macros.hpp>
 
 #include "free_gait_core/free_gait_core.hpp"
@@ -52,6 +54,7 @@ namespace balance_controller {
      * interface
      */
     std::vector<hardware_interface::JointHandle> joints;
+    std::vector<hardware_interface::JointStateHandle> joint_state;
 //    std::vector<hardware_interface::RobotStateHandle> joints;
     /**
      * @brief robot_state_handle, handle robot state

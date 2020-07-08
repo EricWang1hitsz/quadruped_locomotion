@@ -84,7 +84,7 @@ QuadrupedEstimation::QuadrupedEstimation(const ros::NodeHandle& _nodehandle)
     gazebo_sub = nodeHandle_.subscribe("/gazebo/odom", 10, &QuadrupedEstimation::gazeboCb, this);
     //joints(position,velocity,effort)
     //footContacts(support_leg,surface_normal)
-    //gazebo-pose+twist + tf(odom--->basefootprint,basefootprint--->base_link)
+    //gazebo-pose+twist + tf(odom--->basefootprint,basefootprint--->base)
 //    robot_state_sub = nodeHandle_.subscribe<free_gait_msgs::RobotState>("/gazebo/robot_states", 10, &QuadrupedEstimation::robotstateCb, this);
 
     //pub topic
@@ -919,7 +919,7 @@ void QuadrupedEstimation::LegTFOut(){
     if(!gazebo_flag)
       sim_time = ros::Time::now();
     //    base2map_tf.header.frame_id = "map";
-//    base2map_tf.child_frame_id = "base_link";
+//    base2map_tf.child_frame_id = "base";
 //    base2map_tf.header.stamp = sim_time;//ros::Time::now(). - init_time;
 //    base2map_tf.transform.translation.x = odom_position(0);
 //    base2map_tf.transform.translation.y = odom_position(1);
@@ -932,7 +932,7 @@ void QuadrupedEstimation::LegTFOut(){
 
 //*********************base2odom_tf***************************//
     base2odom_tf.header.frame_id = "odom";
-    base2odom_tf.child_frame_id = "base_link";
+    base2odom_tf.child_frame_id = "trunk";
     base2odom_tf.header.stamp = sim_time;//ros::Time::now() - init_time;
     base2odom_tf.transform.translation.x = legodom_tf.getOrigin().x();
     base2odom_tf.transform.translation.y = legodom_tf.getOrigin().y();
@@ -972,22 +972,23 @@ void QuadrupedEstimation::LegTFOut(){
 
 //    footprint_to_base.setRotation(tf::createQuaternionFromRPY(roll, pitch, 0.0));
 //    footprint_to_base.setOrigin(tf::Vector3(0,0,legodom_tf.getOrigin().z()));
-//    tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base, sim_time, "foot_print","base_link"));
+//    tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base, sim_time, "foot_print","base"));
 
-    tf::Quaternion q;
-    q.setW(odom_orientation.w());
-    q.setX(odom_orientation.x());
-    q.setY(odom_orientation.y());
-    q.setZ(odom_orientation.z());
-    double yaw, pitch, roll;
-    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
-    odom_to_footprint.setRotation(tf::createQuaternionFromYaw(yaw));
-    odom_to_footprint.setOrigin(tf::Vector3(odom_position(0),odom_position(1),0));
-    tfBoardcaster_.sendTransform(tf::StampedTransform(odom_to_footprint, sim_time, "odom", "foot_print"));
+    //! eric_wang: notes footprint to base
+//    tf::Quaternion q;
+//    q.setW(odom_orientation.w());
+//    q.setX(odom_orientation.x());
+//    q.setY(odom_orientation.y());
+//    q.setZ(odom_orientation.z());
+//    double yaw, pitch, roll;
+//    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+//    odom_to_footprint.setRotation(tf::createQuaternionFromYaw(yaw));
+//    odom_to_footprint.setOrigin(tf::Vector3(odom_position(0),odom_position(1),0));
+//    tfBoardcaster_.sendTransform(tf::StampedTransform(odom_to_footprint, sim_time, "odom", "foot_print"));
 
-    footprint_to_base.setRotation(tf::createQuaternionFromRPY(roll, pitch, 0.0));
-    footprint_to_base.setOrigin(tf::Vector3(0,0,odom_position(2)));
-    tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base, sim_time, "foot_print","base_link"));
+//    footprint_to_base.setRotation(tf::createQuaternionFromRPY(roll, pitch, 0.0));
+//    footprint_to_base.setOrigin(tf::Vector3(0,0,odom_position(2)));
+//    tfBoardcaster_.sendTransform(tf::StampedTransform(footprint_to_base, sim_time, "foot_print","base"));
 }
 
 void QuadrupedEstimation::LegPubTopic(ros::NodeHandle& _nn){

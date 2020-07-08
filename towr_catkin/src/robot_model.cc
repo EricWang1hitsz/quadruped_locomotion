@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <towr/models/examples/hyq_model.h>
 #include <towr/models/examples/anymal_model.h>
 #include <towr/models/examples/quadruped_model.h>
+#include <towr/models/examples/laikago_model.h>
 
 namespace towr {
 
@@ -60,6 +61,9 @@ RobotModel::RobotModel(Robot robot)
     case Quadruped:
       dynamic_model_ = std::make_shared<quadrupedDynamicModel>();
       kinematic_model_ = std::make_shared<quadrupedKinematicModel>();
+    case Laikago:
+      dynamic_model_ = std::make_shared<laikagoDynamicModel>();
+      kinematic_model_ = std::make_shared<laikagoKinematicModel>();
     default:
       assert(false); // Error: Robot model not implemented.
       break;

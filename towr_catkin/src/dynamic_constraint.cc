@@ -70,6 +70,7 @@ DynamicConstraint::UpdateBoundsAtInstance(double t, int k, VecBound& bounds) con
   for (auto dim : AllDim6D)
     //bounds.at(GetRow(k,dim)) = ifopt::BoundZero; // k6D*k + dimension;
       bounds.at(GetRow(k,dim)) = ifopt::Bounds(-5.0, 5.0);
+      //bounds.at(GetRow(k,dim)) = ifopt::Bounds(-0.5, 0.5);
 }
 
 void

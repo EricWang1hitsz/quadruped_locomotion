@@ -57,7 +57,7 @@ TowrRosInterface::TowrRosInterface ()
   user_command_sub_ = n.subscribe(towr_msgs::user_command, 1,
                                   &TowrRosInterface::UserCommandCallback, this);
 
-  initial_state_sub_ = n.subscribe<free_gait_msgs::RobotState>("/gazebo/robot_states", 1, &TowrRosInterface::InitialStateCallback, this);
+  //initial_state_sub_ = n.subscribe<free_gait_msgs::RobotState>("/gazebo/robot_states", 1, &TowrRosInterface::InitialStateCallback, this);
 
   // static const std::string robot_state_desired("/xpp/state_des")
   initial_state_pub_  = n.advertise<xpp_msgs::RobotStateCartesian>
@@ -67,19 +67,19 @@ TowrRosInterface::TowrRosInterface ()
   robot_parameters_pub_  = n.advertise<xpp_msgs::RobotParameters>
                                     (xpp_msgs::robot_parameters, 1);
   // publish the marker by eric.
-  base_pose_pub_ = n.advertise<geometry_msgs::PoseArray>("base_pose", 1);
+  //base_pose_pub_ = n.advertise<geometry_msgs::PoseArray>("base_pose", 1);
 
-  ee_motion_pub_ = n.advertise<visualization_msgs::Marker>("ee_motion", 1);
+  //ee_motion_pub_ = n.advertise<visualization_msgs::Marker>("ee_motion", 1);
   // publish desired robot state to the controller.
   // trajectory_pub_ = n.advertise<free_gait_msgs::RobotState>("towr_trajectory", 1);
-  trajectory_pub_ = n.advertise<free_gait_msgs::RobotState>("/desired_robot_state", 1);
+  //trajectory_pub_ = n.advertise<free_gait_msgs::RobotState>("/desired_robot_state", 1);
 
   solver_ = std::make_shared<ifopt::IpoptSolver>();
 
   // TODO(EricWang): seems that it is too big.
   visualization_dt_ = 0.01;
 
-  // why error if not resize?
+  // resize
   robot_state_.lf_leg_joints.position.resize(3);
   robot_state_.rf_leg_joints.position.resize(3);
   robot_state_.rh_leg_joints.position.resize(3);
@@ -150,6 +150,7 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
   ROS_INFO("Get user command once");
   // robot model
   formulation_.model_ = RobotModel(static_cast<RobotModel::Robot>(msg.robot)); //! eric_wang: Get what kind of robots, biped or quadruped.
+
   auto robot_params_msg = BuildRobotParametersMsg(formulation_.model_);
   robot_parameters_pub_.publish(robot_params_msg);
 
@@ -164,7 +165,6 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
 //  formulation_.final_base_.lin.at(kPos).x() = 0.0;
 //  formulation_.final_base_.lin.at(kPos).y() = 0.0;
 //  formulation_.final_base_.lin.at(kPos).z() = 0.8;
-
   SetTowrInitialState();//! eric_wang: Add intialized base pos and nominal stance into formulation.
 
   // solver parameters
@@ -186,50 +186,6 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
       nlp_.AddCostSet(c);
 
     solver_->Solve(nlp_); //! eric_wang: Solve NLP problem.
-
-    // TODO(EricWang): Publish base pose by geometry_msgs::poseArray.
-    auto trajectory = GetTrajectory();
-    geometry_msgs::PoseArray Pose_;
-    Pose_.header.frame_id = "world";
-    geometry_msgs::Pose pose;
-    geometry_msgs::Point point;
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "world";
-    marker.header.stamp = ros::Time::now();
-    marker.ns = "Point";
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.type = visualization_msgs::Marker::POINTS;
-    marker.color.g = 0.1;
-    marker.color.a = 0.1;
-    marker.scale.x = 0.05;
-    marker.scale.y = 0.05;
-    marker.pose.orientation.w = 1.0;
-    xpp_msgs::StateLin3d eemotion;
-    xpp_msgs::RobotStateCartesian state_;
-
-    for(std::vector<xpp::RobotStateCartesian>::iterator it = trajectory.begin(); it != trajectory.end(); ++it)
-    {
-        for(auto ee : it->ee_contact_.GetEEsOrdered())
-        {
-            eemotion = xpp::Convert::ToRos(it->ee_motion_.at(ee));
-            point.x = eemotion.pos.x;
-            point.y = eemotion.pos.y;
-            point.z = eemotion.pos.z;
-            marker.points.push_back(point);
-        }
-        ee_motion_pub_.publish(marker);
-
-        state_ = xpp::Convert::ToRos(*it);// To xpp_msgs::RobotStateCartesian.
-        pose = state_.base.pose;
-        Pose_.poses.push_back(pose);
-    }
-    base_pose_pub_.publish(Pose_);
-
-
-     // to publish entire trajectory (e.g. to send to controller)
-     xpp_msgs::RobotStateCartesianTrajectory xpp_msg = xpp::Convert::ToRos(GetTrajectory());
-
-     PublishTrajectoryToController();
 
     SaveOptimizationAsRosbag(bag_file, robot_params_msg, msg, false);
   }

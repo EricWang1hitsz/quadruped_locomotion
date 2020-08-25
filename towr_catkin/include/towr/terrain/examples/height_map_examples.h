@@ -81,8 +81,8 @@ public:
 private:
   double first_step_start_  = 0.6;
   double first_step_width_  = 0.3;
-  double height_first_step  = 0.13;
-  double height_second_step = 0.26;
+  double height_first_step  = 0.10;
+  double height_second_step = 0.20;
   double width_top = 1.0;
 };
 

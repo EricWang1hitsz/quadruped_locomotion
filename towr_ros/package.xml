@@ -29,7 +29,6 @@
   <depend>rosbag</depend>
   <depend>xpp_states</depend>
   <depend>xpp_msgs</depend>
-  <depend>towr_catkin</depend>
   <depend>free_gait_msgs</depend>
   <depend>free_gait_core</depend>
 

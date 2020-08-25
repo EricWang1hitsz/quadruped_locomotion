@@ -47,6 +47,7 @@ towr::SwingConstraint::InitVariableDependedQuantities (const VariablesPtr& x)
 
   // constrain xy position and velocity of every swing node
   int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k2D;
+//  int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k3D; // add z constraints
 
   SetRows(constraint_count);
 }
@@ -68,10 +69,13 @@ SwingConstraint::GetValues () const
     Vector2d distance_xy    = next - prev;
     Vector2d xy_center      = prev + 0.5*distance_xy;
     Vector2d des_vel_center = distance_xy/t_swing_avg_; // linear interpolation not accurate
+    //eric_wang: Add z contraint that z - height of next stance > 0
     for (auto dim : {X,Y}) {
       g(row++) = curr.p()(dim) - xy_center(dim);
       g(row++) = curr.v()(dim) - des_vel_center(dim);
     }
+    //g(row++) = curr.p()(Z) - 0.2; // position z constraint curr.p()(Z) - 0.2 > 0
+//    g(row++) = curr.p()(Z) - 0.05; //!Eric_Wang: Set z position value.
   }
 
   return g;

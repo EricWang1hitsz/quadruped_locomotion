@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ifopt/ipopt_solver.h>
 
 #include "free_gait_msgs/RobotState.h"
-#include "free_gait_core/executor/State.hpp"
+//#include "free_gait_core/executor/State.hpp"
 
 namespace towr {
 
@@ -93,6 +93,8 @@ protected:
   BaseState state_; //! Intermediate variable
   EEPos ee_state_;
 
+  bool simulation_; // use robot in gazebo simulation.
+
 private:
   /**
    * @author eric wang.
@@ -108,9 +110,19 @@ private:
   ros::Subscriber user_command_sub_;
   ros::Publisher initial_state_pub_;
   ros::Publisher robot_parameters_pub_;
-  ros::Publisher base_pose_pub_;
-  ros::Publisher ee_motion_pub_;
   ros::Subscriber initial_state_sub_;
+
+  // Publish swing leg trajectory.
+  void publishSwingTrajectory(XppVec& trajectory);
+  ros::Publisher lf_foot_traj_pub_;
+  ros::Publisher rf_foot_traj_pub_;
+  ros::Publisher lh_foot_traj_pub_;
+  ros::Publisher rh_foot_traj_pub_;
+
+  // Publish base pose array.
+  void publishBasePoseArray(XppVec& trajectory);
+  ros::Publisher base_pose_pub_;
+  ros::Publisher base_path_pub_;
 
   // publish trajectory to the controller.
   ros::Publisher trajectory_pub_;
@@ -132,6 +144,7 @@ private:
   void SaveTrajectoryInRosbag (rosbag::Bag&,
                                const std::vector<xpp::RobotStateCartesian>& traj,
                                const std::string& topic) const;
+
 };
 
 } /* namespace towr */

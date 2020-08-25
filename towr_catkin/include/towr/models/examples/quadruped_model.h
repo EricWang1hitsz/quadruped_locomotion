@@ -33,7 +33,7 @@ public:
     {
         const double x_nominal_b = 0.425;
         const double y_nominal_b = 0.305;
-        const double z_nominal_b = -0.52;
+        const double z_nominal_b = -0.46;
 
         // nominal stance in base frame.
         nominal_stance_.at(LF) << x_nominal_b, y_nominal_b, z_nominal_b;

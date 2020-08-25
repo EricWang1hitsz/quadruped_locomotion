@@ -51,6 +51,7 @@ TerrainConstraint::InitVariableDependedQuantities (const VariablesPtr& x)
     node_ids_.push_back(id);
 
   int constraint_count = node_ids_.size();
+//  int constraint_count = node_ids_.size() * 3;
   SetRows(constraint_count);
 }
 
@@ -66,6 +67,9 @@ TerrainConstraint::GetValues () const
     Vector3d p = nodes.at(id).p();
     //! eric_wang: Set the endeffector height constraint.
     g(row++) = p.z() - terrain_->GetHeight(p.x(), p.y());
+    //!Eric_Wang: avoid leg collision with terrain, eg.stair.
+//    g(row++) = terrain_->GetHeight(p.x(), p.y()) - terrain_->GetHeight(p.x(), p.y());
+//    g(row++) = terrain_->GetHeight(p.x(), p.y()) - terrain_->GetHeight(p.x(), p.y());
   }
 
   return g;

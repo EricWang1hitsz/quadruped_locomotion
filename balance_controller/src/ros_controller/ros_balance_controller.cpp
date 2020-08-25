@@ -717,7 +717,7 @@ namespace balance_controller{
     //! eric_wang: For swing leg.
     if(!robot_state->isSupportLeg(free_gait::LimbEnum::LF_LEG))
       {
-        ROS_INFO("LF_LEG is NOT Contacted");
+        //ROS_INFO("LF_LEG is NOT Contacted");
         //! WSHY: compute gravity compensation
         free_gait::JointPositionsLeg joint_position_leg = free_gait::JointPositionsLeg(all_joint_positions.vector().segment(0,3));
         free_gait::JointEffortsLeg gravity_compensation_torque = robot_state->getGravityCompensationForLimb(free_gait::LimbEnum::LF_LEG,

@@ -217,7 +217,10 @@ target_link_libraries(state_estimate_controller
   target_link_libraries(single_leg_controller
     ${catkin_LIBRARIES}
     )
-
+add_library(path_tracking_controller
+    src/ros_controller/path_tracking_controller.cpp)
+target_link_libraries(path_tracking_controller
+  ${catkin_LIBRARIES})
 #add_library(joint_torque_controller src/ros_controller/joint_torque_controller.cpp)
 #target_link_libraries(joint_torque_controller
 #  ${catkin_LIBRARIES}
@@ -228,13 +231,15 @@ target_link_libraries(state_estimate_controller
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS})
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/balance_controller_node.cpp)
 add_executable(balance_controller_test_node test/test.cpp)
 add_executable(balance_controller_manager src/ros_controller/balance_controller_manager.cpp)
+add_executable(stand_up_test test/stand_up.cpp)
+add_executable(path_tracking_controller_test test/path_tracking_controller_test.cpp)
 #add_executable(whole_body_controller_test test/whole_body_controller_test.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -258,6 +263,13 @@ target_link_libraries(balance_controller_manager
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
   )
+target_link_libraries(stand_up_test
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  )
+target_link_libraries(path_tracking_controller_test
+  ${catkin_LIBRARIES}
+  path_tracking_controller)
 #target_link_libraries(whole_body_controller_test
 #    whole_body_controller
 #    ${PROJECT_NAME}

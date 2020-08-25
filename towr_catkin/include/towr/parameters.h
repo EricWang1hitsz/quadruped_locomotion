@@ -150,7 +150,8 @@ public:
    *  problem.
    */
   enum CostName       { ForcesCostID,    ///< sets NodeCost on force nodes
-                        EEMotionCostID   ///< sets NodeCost on endeffector velocity
+                        EEMotionCostID,   ///< sets NodeCost on endeffector velocity
+//                        BaseMotionCostID ///< eric_wang
   };
 
   using CostWeights      = std::vector<std::pair<CostName, double>>;

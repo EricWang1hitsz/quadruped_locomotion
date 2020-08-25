@@ -868,7 +868,7 @@ using namespace free_gait;
             //----------------------------------------------------------
             // (EricWang) Push back footstep msgs into step msgs.
             //----------------------------------------------------------
-            ROS_INFO("Generate foothold:: push back footstep msgs");
+            //ROS_INFO("Generate foothold:: push back footstep msgs");
             step_msg_.footstep.push_back(footstep_msg_);
 //            ROS_WARN("Generate foot hold position(%f, %f, %f) for %s ",footstep_msg_.target.point.x,footstep_msg_.target.point.y,footstep_msg_.target.point.z,
 //                     getLimbStringFromLimbEnum(limb).c_str());
@@ -1550,4 +1550,3 @@ using namespace free_gait;
       return "RH_LEG";
   //  throw std::runtime_error("AdapterGazebo::getLimbStringFromLimbEnum() is not implemented.");
   }
-

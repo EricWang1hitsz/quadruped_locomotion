@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <towr/parameters.h>
 #include <towr/variables/cartesian_dimensions.h>
-
+#include <towr/costs/square_cost.h>
 #include <algorithm>
 #include <numeric>      // std::accumulate
 #include <math.h>       // fabs
@@ -62,10 +62,13 @@ Parameters::Parameters ()
 //  constraints_.push_back(BaseRom); //! eric_wang: add another constraint.
 
   // optional costs to e.g penalize endeffector forces
-  // costs_.push_back({ForcesCostID, 1.0}); weighed by 1.0 relative to other costs
+//   costs_.push_back({ForcesCostID, 1.0});  // weighed by 1.0 relative to other costs
+   costs_.push_back({EEMotionCostID, 0.5});
+//  costs_.push_back({BaseMotionCostID, 1.0});
 
   // bounds on final 6DoF base state
   bounds_final_lin_pos_ = {X,Y};
+//   bounds_final_lin_pos_ = {X,Y,Z};
   bounds_final_lin_vel_ = {X,Y,Z};
   bounds_final_ang_pos_ = {X,Y,Z};
   bounds_final_ang_vel_ = {X,Y,Z};

@@ -8,8 +8,9 @@ add_compile_options(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(ifopt 2.0.1 REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
-    quadruped_model
+    #quadruped_model
     kindr_ros
 )
 
@@ -104,19 +105,20 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
+  ${EIGEN3_INCLUDE_DIR}
   LIBRARIES towr_catkin
-  CATKIN_DEPENDS quadruped_model #other_catkin_pkg
+  CATKIN_DEPENDS #quadruped_model #other_catkin_pkg
   DEPENDS #system_lib
 
 )
 
-# Attempt to find catkinized kindr
-find_package(kindr QUIET)
-if(NOT kindr_FOUND)
-  # Attempt to find package-based kindr
-  find_package(PkgConfig REQUIRED)
-  pkg_check_modules(kindr kindr REQUIRED)
-endif()
+## Attempt to find catkinized kindr
+#find_package(kindr QUIET)
+#if(NOT kindr_FOUND)
+#  # Attempt to find package-based kindr
+#  find_package(PkgConfig REQUIRED)
+#  pkg_check_modules(kindr kindr REQUIRED)
+#endif()
 
 ###########
 ## Build ##
@@ -128,6 +130,7 @@ include_directories(
  include
  ${ifopt_INCLUDE_DIRS}
  ${catkin_INCLUDE_DIRS}
+ ${EIGEN3_INCLUDE_DIR}
 )
 add_library(${PROJECT_NAME} SHARED
   # sample formulation usage
@@ -157,6 +160,7 @@ add_library(${PROJECT_NAME} SHARED
   # costs
   src/node_cost.cc
   src/soft_constraint.cc
+  src/square_cost.cc
   # initialization
   src/gait_generator.cc
   src/monoped_gait_generator.cc
@@ -176,13 +180,10 @@ add_library(${PROJECT_NAME} SHARED
   src/euler_converter.cc
   src/phase_durations_observer.cc
 )
-add_library(robot_state
-     src/robot_state.cc )
 
 target_link_libraries(${PROJECT_NAME} 
   ${catkin_LIBRARIES}
   ${ifopt_LIBRARIES}
-  robot_state
 )
 #target_include_directories(${PROJECT_NAME}
 #  PUBLIC

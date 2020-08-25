@@ -29,9 +29,9 @@
 
 <!-- Load controller configuration -->
 
-<include file="$(find xsens_driver)/launch/xsens_driver.launch">
+<!-- <include file="$(find xsens_driver)/launch/xsens_driver.launch">
 
-</include>
+</include> -->
 <!-- <remap from="/imu/data" to="/imu" /> -->
 <param name="/imu_topic_name" value="/imu/data" />
 
@@ -63,7 +63,7 @@
               all_joints_velocity_group_controller
               all_joints_effort_group_controller" />
 
-<node name="controller_manager" pkg="balance_controller" type="balanc2e_controller_manager" args="" output="screen" respawn="false">
+<node name="controller_manager" pkg="balance_controller" type="balance_controller_manager" args="" output="screen" respawn="false">
   <param name="/ethercat_card_name" value="eno1" type="str"/>
   <param name="/slave_type" value="Twitter" type="str"/>
   <param name="/pdo_type" value="PDOA" type="str"/>

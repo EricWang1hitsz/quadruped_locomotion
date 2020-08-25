@@ -14,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   towr_catkin
   free_gait_msgs
   free_gait_core
+  geometry_msgs
+  nav_msgs
 
 
 )
@@ -36,10 +38,7 @@ generate_messages( DEPENDENCIES std_msgs xpp_msgs)
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES ${PROJECT_NAME}
-   CATKIN_DEPENDS xpp_states roscpp
-   free_gait_msgs
-   free_gait_core
-   towr_catkin
+   CATKIN_DEPENDS xpp_states roscpp free_gait_msgs free_gait_core xpp_msgs
    #DEPENDS towr_catkin
 
 )
@@ -58,9 +57,9 @@ include_directories(
 add_library(${PROJECT_NAME} SHARED
   src/towr_ros_interface.cc
 )
-add_dependencies(${PROJECT_NAME} 
-  ${PROJECT_NAME}_gencpp
-)
+#add_dependencies(${PROJECT_NAME}
+#  ${PROJECT_NAME}_gencpp
+#)
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
@@ -70,9 +69,9 @@ target_link_libraries(${PROJECT_NAME}
 add_executable(towr_ros_app 
   src/towr_ros_app.cc
 )
-add_dependencies(towr_ros_app 
-  ${PROJECT_NAME}_gencpp
-)
+#add_dependencies(towr_ros_app
+#  ${PROJECT_NAME}_gencpp
+#)
 target_link_libraries(towr_ros_app
   ${catkin_LIBRARIES}
   ${PROJECT_NAME}
@@ -110,9 +109,9 @@ target_link_libraries(rviz_terrain_publisher
 add_executable(goal_pose_publisher 
   src/goal_pose_publisher.cc
 )
-add_dependencies(goal_pose_publisher 
-  ${PROJECT_NAME}_gencpp
-) 
+#add_dependencies(goal_pose_publisher
+#  ${PROJECT_NAME}_gencpp
+#)
 target_link_libraries(goal_pose_publisher
   ${catkin_LIBRARIES}
 )

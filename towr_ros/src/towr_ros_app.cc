@@ -53,8 +53,8 @@ public:
       auto nominal_stance_B = formulation_.model_.kinematic_model_->GetNominalStanceInBase();
 
       double z_ground = 0.0;
-      std::for_each(formulation_.initial_ee_W_.begin(), formulation_.initial_ee_W_.end(),
-                  [&](Vector3d& p){ p.z() = z_ground; } );// feet at 0 height
+      //std::for_each(formulation_.initial_ee_W_.begin(), formulation_.initial_ee_W_.end(),
+      //            [&](Vector3d& p){ p.z() = z_ground; } );// feet at 0 height
 
 //    formulation_.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
       BaseState initial_base_;
@@ -73,8 +73,19 @@ public:
           Vector3d intial_ee_pos_W = initial_base_.lin.p() + w_R_b * nominal_stance_B.at(ee);
           initial_stance_W.push_back(intial_ee_pos_W);
       }
-      formulation_.initial_ee_W_ = initial_stance_W;
-      formulation_.initial_base_ = initial_base_;
+      if(simulation_) // use robot info in gazebo info as initiliazed state
+      {
+          formulation_.initial_ee_W_ = initial_stance_W;
+          formulation_.initial_base_ = initial_base_;
+      }
+      else //
+      {
+          formulation_.initial_ee_W_ = nominal_stance_B;
+          std::for_each(formulation_.initial_ee_W_.begin(), formulation_.initial_ee_W_.end(),
+                      [&](Vector3d& p){ p.z() = z_ground; } );// feet at 0 height
+          formulation_.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
+      }
+
   }
 
   /**
@@ -98,7 +109,7 @@ public:
 
     // Here you can also add other constraints or change parameters
     // params.constraints_.push_back(Parameters::BaseRom);
-//    params.constraints_.push_back(Parameters::BaseRom);
+    // params.constraints_.push_back(Parameters::BaseRom);
     // increases optimization time, but sometimes helps find a solution for
     // more difficult terrain.
     if (msg.optimize_phase_durations)
@@ -128,7 +139,7 @@ public:
     // deviation of 10e-4, which is fine. What to watch out for is deviations > 10e-2.
     // solver_->SetOption("derivative_test", "first-order");
 
-    solver_->SetOption("max_cpu_time", 150.0);
+    solver_->SetOption("max_cpu_time", 120.0);
     solver_->SetOption("print_level", 5);
 
     if (msg.play_initialization)

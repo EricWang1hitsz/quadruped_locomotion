@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseWithCovariance.h>
+#include <nav_msgs/Path.h>
 
 
 namespace towr {
@@ -67,19 +68,26 @@ TowrRosInterface::TowrRosInterface ()
   robot_parameters_pub_  = n.advertise<xpp_msgs::RobotParameters>
                                     (xpp_msgs::robot_parameters, 1);
   // publish the marker by eric.
-  base_pose_pub_ = n.advertise<geometry_msgs::PoseArray>("base_pose", 1);
-
-  ee_motion_pub_ = n.advertise<visualization_msgs::Marker>("ee_motion", 1);
+  base_pose_pub_ = n.advertise<geometry_msgs::PoseArray>("base_pose", 1000);
+  base_path_pub_ = n.advertise<nav_msgs::Path>("base_path", 1000);
+  lf_foot_traj_pub_ = n.advertise<nav_msgs::Path>("lf_foot_traj", 1000);
+  rf_foot_traj_pub_ = n.advertise<nav_msgs::Path>("rf_foot_traj", 1000);
+  lh_foot_traj_pub_ = n.advertise<nav_msgs::Path>("lh_foot_traj", 1000);
+  rh_foot_traj_pub_ = n.advertise<nav_msgs::Path>("rh_foot_traj", 1000);
   // publish desired robot state to the controller.
   // trajectory_pub_ = n.advertise<free_gait_msgs::RobotState>("towr_trajectory", 1);
   trajectory_pub_ = n.advertise<free_gait_msgs::RobotState>("/desired_robot_state", 1);
 
   solver_ = std::make_shared<ifopt::IpoptSolver>();
 
+  n.getParam("/simulation", simulation_);
+  ROS_WARN_STREAM("simulation: " << simulation_ << std::endl);
   // TODO(EricWang): seems that it is too big.
   visualization_dt_ = 0.01;
+//  visualization_dt_ = 0.0005;
+//  visualization_dt_ = 0.000125;
 
-  // why error if not resize?
+  // alloc memory.
   robot_state_.lf_leg_joints.position.resize(3);
   robot_state_.rf_leg_joints.position.resize(3);
   robot_state_.rh_leg_joints.position.resize(3);
@@ -112,7 +120,6 @@ void TowrRosInterface::InitialStateCallback(const free_gait_msgs::RobotStateCons
 
 BaseState TowrRosInterface::GetInitialState(const free_gait_msgs::RobotStateConstPtr &robot_state_msg)
 {
-
     BaseState initial_state;
     initial_state.lin.at(kPos).x() = robot_state_msg->base_pose.pose.pose.position.x;
     initial_state.lin.at(kPos).y() = robot_state_msg->base_pose.pose.pose.position.y;
@@ -159,11 +166,17 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
 
   int n_ee = formulation_.model_.kinematic_model_->GetNumberOfEndeffectors();
   formulation_.params_ = GetTowrParameters(n_ee, msg);//! eric_wang: quadruped gait generator.
-  formulation_.final_base_ = GetGoalState(msg);
-//  //! eric_wang:
-//  formulation_.final_base_.lin.at(kPos).x() = 0.0;
-//  formulation_.final_base_.lin.at(kPos).y() = 0.0;
-//  formulation_.final_base_.lin.at(kPos).z() = 0.8;
+
+  if(simulation_)
+  {
+      BaseState final_base_ = GetGoalState(msg);
+      final_base_.lin.at(kPos) = final_base_.lin.at(kPos) + state_.lin.at(kPos);
+      final_base_.ang.at(kPos) = final_base_.ang.at(kPos) + state_.ang.at(kPos);
+      formulation_.final_base_ = final_base_;
+  }
+  else {
+      formulation_.final_base_ = GetGoalState(msg);
+  }
 
   SetTowrInitialState();//! eric_wang: Add intialized base pos and nominal stance into formulation.
 
@@ -184,47 +197,16 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
       nlp_.AddConstraintSet(c);
     for (auto c : formulation_.GetCosts())
       nlp_.AddCostSet(c);
+//    for (auto c : formulation_.GetCosts(solution))
+//      nlp_.AddCostSet(c);
 
     solver_->Solve(nlp_); //! eric_wang: Solve NLP problem.
 
-    // TODO(EricWang): Publish base pose by geometry_msgs::poseArray.
+    // Publish base pose and leg trajectory.
     auto trajectory = GetTrajectory();
-    geometry_msgs::PoseArray Pose_;
-    Pose_.header.frame_id = "world";
-    geometry_msgs::Pose pose;
-    geometry_msgs::Point point;
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "world";
-    marker.header.stamp = ros::Time::now();
-    marker.ns = "Point";
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.type = visualization_msgs::Marker::POINTS;
-    marker.color.g = 0.1;
-    marker.color.a = 0.1;
-    marker.scale.x = 0.05;
-    marker.scale.y = 0.05;
-    marker.pose.orientation.w = 1.0;
-    xpp_msgs::StateLin3d eemotion;
-    xpp_msgs::RobotStateCartesian state_;
+    publishSwingTrajectory(trajectory);
 
-    for(std::vector<xpp::RobotStateCartesian>::iterator it = trajectory.begin(); it != trajectory.end(); ++it)
-    {
-        for(auto ee : it->ee_contact_.GetEEsOrdered())
-        {
-            eemotion = xpp::Convert::ToRos(it->ee_motion_.at(ee));
-            point.x = eemotion.pos.x;
-            point.y = eemotion.pos.y;
-            point.z = eemotion.pos.z;
-            marker.points.push_back(point);
-        }
-        ee_motion_pub_.publish(marker);
-
-        state_ = xpp::Convert::ToRos(*it);// To xpp_msgs::RobotStateCartesian.
-        pose = state_.base.pose;
-        Pose_.poses.push_back(pose);
-    }
-    base_pose_pub_.publish(Pose_);
-
+    publishBasePoseArray(trajectory);
 
      // to publish entire trajectory (e.g. to send to controller)
      xpp_msgs::RobotStateCartesianTrajectory xpp_msg = xpp::Convert::ToRos(GetTrajectory());
@@ -499,7 +481,7 @@ void TowrRosInterface::PublishTrajectoryToController()
 
 
     }
-      trajectory_pub_.publish(robot_state_);
+      //trajectory_pub_.publish(robot_state_);
       ros_bag.write(topic_name, timestamp, robot_state_);
     }
 
@@ -582,5 +564,77 @@ TowrRosInterface::SaveTrajectoryInRosbag (rosbag::Bag& bag,
   }
 }
 
+void TowrRosInterface::publishSwingTrajectory(XppVec &trajectory)
+{
+    xpp_msgs::StateLin3d lf_traj, rf_traj, lh_traj, rh_traj;
+    nav_msgs::Path lf_trajectory_, rf_trajectory_, lh_trajectory_, rh_trajectory_;
+    geometry_msgs::PoseStamped lf_trajectory, rf_trajectory, lh_trajectory, rh_trajectory;
+    lf_trajectory_.header.frame_id = "world";
+    lf_trajectory_.header.stamp = ros::Time::now();
+    rf_trajectory_.header.frame_id = "world";
+    rf_trajectory_.header.stamp = ros::Time::now();
+    lh_trajectory_.header.frame_id = "world";
+    lh_trajectory_.header.stamp = ros::Time::now();
+    rh_trajectory_.header.frame_id = "world";
+    rh_trajectory_.header.stamp = ros::Time::now();
+    for(std::vector<xpp::RobotStateCartesian>::iterator it = trajectory.begin(); it != trajectory.end(); ++it)
+    {
+        lf_traj = xpp::Convert::ToRos(it->ee_motion_.at(0));
+        rf_traj = xpp::Convert::ToRos(it->ee_motion_.at(1));
+        lh_traj = xpp::Convert::ToRos(it->ee_motion_.at(2));
+        rh_traj = xpp::Convert::ToRos(it->ee_motion_.at(3));
+
+        lf_trajectory.pose.position.x = lf_traj.pos.x;
+        lf_trajectory.pose.position.y = lf_traj.pos.y;
+        lf_trajectory.pose.position.z = lf_traj.pos.z;
+        rf_trajectory.pose.position.x = rf_traj.pos.x;
+        rf_trajectory.pose.position.y = rf_traj.pos.y;
+        rf_trajectory.pose.position.z = rf_traj.pos.z;
+        lh_trajectory.pose.position.x = lh_traj.pos.x;
+        lh_trajectory.pose.position.y = lh_traj.pos.y;
+        lh_trajectory.pose.position.z = lh_traj.pos.z;
+        rh_trajectory.pose.position.x = rh_traj.pos.x;
+        rh_trajectory.pose.position.y = rh_traj.pos.y;
+        rh_trajectory.pose.position.z = rh_traj.pos.z;
+
+        lf_trajectory_.poses.push_back(lf_trajectory);
+        rf_trajectory_.poses.push_back(rf_trajectory);
+        lh_trajectory_.poses.push_back(lh_trajectory);
+        rh_trajectory_.poses.push_back(rh_trajectory);
+    }
+    lf_foot_traj_pub_.publish(lf_trajectory_);
+    rf_foot_traj_pub_.publish(rf_trajectory_);
+    lh_foot_traj_pub_.publish(lh_trajectory_);
+    rh_foot_traj_pub_.publish(rh_trajectory_);
+}
+
+void TowrRosInterface::publishBasePoseArray(XppVec &trajectory)
+{
+    geometry_msgs::PoseArray poses_;
+    poses_.header.frame_id = "world";
+    geometry_msgs::Pose pose_;
+
+    nav_msgs::Path path_;
+    path_.header.frame_id = "world";
+    path_.header.stamp = ros::Time::now();
+    geometry_msgs::PoseStamped pose;
+
+    xpp_msgs::RobotStateCartesian state_;
+    int count = 0;
+    for(std::vector<xpp::RobotStateCartesian>::iterator it = trajectory.begin(); it != trajectory.end(); ++it)
+    {
+        state_ = xpp::Convert::ToRos(*it);// To xpp_msgs::RobotStateCartesian.
+        pose_ = state_.base.pose;
+        pose.pose = state_.base.pose;
+        if(count > 10){ // Not visual all poses.
+            poses_.poses.push_back(pose_);
+            path_.poses.push_back(pose);
+            count = 0;
+        }
+        count += 1;
+    }
+    base_pose_pub_.publish(poses_);
+    base_path_pub_.publish(path_);
+}
 } /* namespace towr */
 

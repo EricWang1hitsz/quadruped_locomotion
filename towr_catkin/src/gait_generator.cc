@@ -133,6 +133,7 @@ GaitGenerator::SetGaits (const std::vector<Gaits>& gaits) //! eric_wang: enum Ga
 GaitGenerator::GaitInfo
 GaitGenerator::RemoveTransition (const GaitInfo& g) const
 {
+  //using GaitInfo = std::pair<VecTimes,std::vector<ContactState>>;
   GaitInfo new_gait = g;
 
   // remove the final transition between strides

@@ -74,7 +74,7 @@ void UserCommandCallback(const towr_ros::TowrCommand& msg_in)
       m.pose.position.z = terrain_->GetHeight(x,y);
 
       // orientation
-      Eigen::Vector3d n = terrain_->GetNormalizedBasis(HeightMap::Normal, x, y);
+      Eigen::Vector3d n = terrain_->GetNormalizedBasis(HeightMap::Normal, x, y); //!Eric_Wang: Normal vector.
       Eigen::Quaterniond q = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d(0,0,1), n);
       m.pose.orientation.w = q.w();
       m.pose.orientation.x = q.x();

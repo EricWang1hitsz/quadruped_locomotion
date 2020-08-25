@@ -61,20 +61,20 @@ TowrUserInterface::TowrUserInterface ()
   printw("                          *********      **         **                   \n");
   printw("                          **     **      **         **                   \n");
   printw("                          **     **    ******       **                   \n");
-  printw(" -------------------------------------------------------------------------------\n\n\n\n\n");
+  printw(" -------------------------------------------------------------------------------\n\n\n\n\n\n");
 
   ros::NodeHandle n;
   user_command_pub_ = n.advertise<towr_ros::TowrCommand>(towr_msgs::user_command, 1);
 
   goal_geom_.lin.p_.setZero();
-  goal_geom_.lin.p_ << 0.7, 0.0, 0.0;
+  goal_geom_.lin.p_ << 0.3, 0.0, 0.0;
   goal_geom_.ang.p_ << 0.0, 0.0, 0.0; // roll, pitch, yaw angle applied Z->Y'->X''
 
   robot_      = RobotModel::Monoped;
 //  robot_      = RobotModel::Quadruped;
   terrain_    = HeightMap::FlatID;
-  gait_combo_ = GaitGenerator::C6;
-  total_duration_ = 5.4;
+  gait_combo_ = GaitGenerator::C7;
+  total_duration_ = 3.2;
   visualize_trajectory_ = false;
   plot_trajectory_ = false;
   replay_speed_ = 1.0; // realtime

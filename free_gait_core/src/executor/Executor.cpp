@@ -241,7 +241,7 @@ bool Executor::resetStateWithRobot()
   for (const auto& limb : adapter_.getLimbs()) {
     if (state_.isSupportLeg(limb)) {
       state_.setEmptyControlSetup(limb);
-    } else {
+    } else { // swing leg
       state_.setControlSetup(limb, adapter_.getControlSetup(limb));
     }
   }
@@ -365,6 +365,7 @@ bool Executor::writeSurfaceNormals()
 
 bool Executor::writeLegMotion()
 {
+  ROS_INFO_THROTTLE(10, "Write Leg Motion");
   for (const auto& limb : adapter_.getLimbs()) {
     if (state_.isSupportLeg(limb)) state_.setEmptyControlSetup(limb);
   }
@@ -388,6 +389,7 @@ bool Executor::writeLegMotion()
         //! WSHY: Directly endeffector order in cartisiane space
 
         if (controlSetup[ControlLevel::Position]) {
+            ROS_INFO_THROTTLE(10, "Control Level Position");
           const std::string& frameId = endEffectorMotion.getFrameId(ControlLevel::Position);
           if (!adapter_.frameIdExists(frameId)) {
             std::cerr << "Could not find frame '" << frameId << "' for free gait leg motion!" << std::endl;
@@ -405,6 +407,7 @@ bool Executor::writeLegMotion()
           state_.setTargetFootPositionInBaseForLimb(positionInBaseFrame, limb);
         }
         if (controlSetup[ControlLevel::Velocity]) {
+            ROS_INFO_THROTTLE(10, "Control Level Velocity");
           const std::string& frameId = endEffectorMotion.getFrameId(ControlLevel::Velocity);
           if (!adapter_.frameIdExists(frameId)) {
             std::cerr << "Could not find frame '" << frameId << "' for free gait leg motion!" << std::endl;
@@ -420,6 +423,7 @@ bool Executor::writeLegMotion()
           state_.setTargetFootVelocityInBaseForLimb(velocityInBaseFrame, limb);
         }
         if (controlSetup[ControlLevel::Acceleration]) {
+            ROS_INFO_THROTTLE(10, "Control Level Acceleration");
           const std::string& frameId = endEffectorMotion.getFrameId(ControlLevel::Acceleration);
           if (!adapter_.frameIdExists(frameId)) {
             std::cerr << "Could not find frame '" << frameId << "' for free gait leg motion!" << std::endl;

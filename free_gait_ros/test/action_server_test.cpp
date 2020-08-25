@@ -151,7 +151,7 @@ public:
 //          cout<<"Current base position : "<<AdapterRos_.getAdapter().getPositionWorldToBaseInWorldFrame()<<endl;
 //          cout<<"joint position: "<<AdapterRos_.getAdapter().getAllJointPositions()<<endl;
           if (!executor->getQueue().empty()&&!is_pause&&!is_stop) {
-              ROS_INFO("Executor is working");
+              //ROS_INFO("Executor is working");
             boost::recursive_mutex::scoped_lock lock(r_mutex_);
             AdapterRos_.updateAdapterWithState();
 
@@ -230,7 +230,7 @@ public:
 //                }
               else if(use_towr)
               {
-                  ROS_INFO("Test if executor not working");
+                  //ROS_INFO("Test if executor not working");
               }
             }
 

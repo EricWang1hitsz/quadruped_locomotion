@@ -5,6 +5,10 @@
   <!-- so the logging prints the node name -->
   <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${node}]: ${message}" />
 
+  <!-- set initilized robot info -->
+  <!-- <param name="/simulation" value="true" /> -->
+    <param name="/simulation" value="false" />
+
   <!-- TOWR: Start the optimizer and GUI-->
   <group unless="$(arg debug)">
     <include file="$(find towr_ros)/launch/towr_nodes.launch">

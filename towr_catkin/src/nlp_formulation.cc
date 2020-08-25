@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <towr/constraints/spline_acc_constraint.h>
 
 #include <towr/costs/node_cost.h>
+#include <towr/costs/square_cost.h>
 #include <towr/variables/nodes_variables_all.h>
 
 #include <iostream>
@@ -54,7 +55,7 @@ NlpFormulation::NlpFormulation ()
   cout << "\n";
   cout << "************************************************************\n";
   cout << " TOWR - Trajectory Optimization for Quadruped Robot (HITsz)\n";
-  cout << "************************************************************";
+  cout << "************************************************************\n";
   cout << "\n\n";
 }
 
@@ -333,21 +334,25 @@ NlpFormulation::MakeBaseAccConstraint (const SplineHolder& s) const
 
 NlpFormulation::ContraintPtrVec
 NlpFormulation::GetCosts() const
+//NlpFormulation::GetCosts(const SplineHolder& spline_holder) const
 {
   ContraintPtrVec costs;
   for (const auto& pair : params_.costs_)
     for (auto c : GetCost(pair.first, pair.second))
+//      for (auto c : GetCost(pair.first, pair.second, spline_holder))
       costs.push_back(c);
 
   return costs;
 }
 
 NlpFormulation::CostPtrVec
+//NlpFormulation::GetCost(const Parameters::CostName& name, double weight, const SplineHolder& spline_holder) const
 NlpFormulation::GetCost(const Parameters::CostName& name, double weight) const
 {
   switch (name) {
     case Parameters::ForcesCostID:   return MakeForcesCost(weight);
     case Parameters::EEMotionCostID: return MakeEEMotionCost(weight);
+//    case Parameters::BaseMotionCostID: return MakeBaseMotionCost(weight, spline_holder);
     default: throw std::runtime_error("cost not defined!");
   }
 }
@@ -371,9 +376,27 @@ NlpFormulation::MakeEEMotionCost(double weight) const
   for (int ee=0; ee<params_.GetEECount(); ee++) {
     cost.push_back(std::make_shared<NodeCost>(id::EEMotionNodes(ee), kVel, X, weight));
     cost.push_back(std::make_shared<NodeCost>(id::EEMotionNodes(ee), kVel, Y, weight));
+    cost.push_back(std::make_shared<NodeCost>(id::EEMotionNodes(ee), kVel, Z, weight));
+    //cost.push_back(std::make_shared<NodeCost>(id::EEMotionNodes(ee), kPos, Z, weight));
   }
 
   return cost;
+}
+
+NlpFormulation::CostPtrVec
+NlpFormulation::MakeBaseMotionCost(double weight, const SplineHolder& spline_holder) const
+{
+    CostPtrVec cost;
+    std::cout << "TEST" << std::endl;
+    auto baseConstraint = std::make_shared<BaseMotionConstraint>(params_.GetTotalTime(),
+                                                     params_.dt_constraint_base_motion_,
+                                                     spline_holder);
+
+    auto baseCost = std::make_shared<SquaredCost>(baseConstraint);
+
+    cost.push_back(baseCost);
+
+    return cost;
 }
 
 } /* namespace towr */

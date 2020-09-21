@@ -63,7 +63,7 @@ Parameters::Parameters ()
 
   // optional costs to e.g penalize endeffector forces
 //   costs_.push_back({ForcesCostID, 1.0});  // weighed by 1.0 relative to other costs
-   costs_.push_back({EEMotionCostID, 0.5});
+//   costs_.push_back({EEMotionCostID, 0.5});
 //  costs_.push_back({BaseMotionCostID, 1.0});
 
   // bounds on final 6DoF base state

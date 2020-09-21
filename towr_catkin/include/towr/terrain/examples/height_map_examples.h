@@ -79,8 +79,8 @@ public:
   double GetHeight(double x, double y) const override;
 
 private:
-  double first_step_start_  = 0.6;
-  double first_step_width_  = 0.3;
+  double first_step_start_  = 0.65;
+  double first_step_width_  = 0.3; // 0.4
   double height_first_step  = 0.13;
   double height_second_step = 0.26;
   double width_top = 1.0;

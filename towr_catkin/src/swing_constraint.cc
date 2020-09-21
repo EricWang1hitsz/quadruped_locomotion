@@ -30,6 +30,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <towr/constraints/swing_constraint.h>
 #include <towr/variables/cartesian_dimensions.h>
 
+#include <ros/ros.h>
+
 namespace towr {
 
 SwingConstraint::SwingConstraint (std::string ee_motion)
@@ -45,9 +47,11 @@ towr::SwingConstraint::InitVariableDependedQuantities (const VariablesPtr& x)
 
   pure_swing_node_ids_ = ee_motion_->GetIndicesOfNonConstantNodes();
 
+  ROS_INFO_STREAM("Pure swing node size << " << pure_swing_node_ids_.size() << std::endl);
+
   // constrain xy position and velocity of every swing node
-  int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k2D;
-//  int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k3D; // add z constraints
+//  int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k2D;
+  int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k3D; // add z constraints
 
   SetRows(constraint_count);
 }
@@ -60,6 +64,7 @@ SwingConstraint::GetValues () const
   int row = 0;
   auto nodes = ee_motion_->GetNodes();
   for (int node_id : pure_swing_node_ids_) {
+     //ROS_INFO_STREAM("node id << " << node_id << std::endl); // 2 5 8
     // assumes two splines per swingphase and starting and ending in stance
     auto curr = nodes.at(node_id);
 
@@ -74,6 +79,18 @@ SwingConstraint::GetValues () const
       g(row++) = curr.p()(dim) - xy_center(dim);
       g(row++) = curr.v()(dim) - des_vel_center(dim);
     }
+
+    if(node_id = 1)
+    {
+        g(row++) = curr.p()(Z) - 0.05; // boundZero
+        g(row++) = curr.v()(Z) - 1.0; // no bound
+    }
+    else
+    {
+        g(row++) = curr.p()(Z) - 0.0;
+        g(row++) = curr.v()(Z) - 0.0;
+    }
+
     //g(row++) = curr.p()(Z) - 0.2; // position z constraint curr.p()(Z) - 0.2 > 0
 //    g(row++) = curr.p()(Z) - 0.05; //!Eric_Wang: Set z position value.
   }
@@ -84,7 +101,34 @@ SwingConstraint::GetValues () const
 SwingConstraint::VecBound
 SwingConstraint::GetBounds () const
 {
-  return VecBound(GetRows(), ifopt::BoundZero);
+  //return VecBound(GetRows(), ifopt::BoundZero);
+
+  VecBound bounds;
+
+  for(int s_node_id : pure_swing_node_ids_)
+  {
+      if(s_node_id == 1)
+      {
+          bounds.push_back(ifopt::BoundZero);
+          bounds.push_back(ifopt::BoundZero);
+          bounds.push_back(ifopt::BoundZero);
+          bounds.push_back(ifopt::BoundZero);
+          bounds.push_back(ifopt::BoundZero);
+          bounds.push_back(ifopt::NoBound);
+      }
+      else
+      {
+          bounds.push_back(ifopt::BoundZero);
+          bounds.push_back(ifopt::BoundZero);
+          bounds.push_back(ifopt::BoundZero);
+          bounds.push_back(ifopt::BoundZero);
+          bounds.push_back(ifopt::NoBound);
+          bounds.push_back(ifopt::NoBound);
+      }
+
+  }
+
+  return bounds;
 }
 
 void

@@ -49,7 +49,7 @@ int main(int argc, char **argv)
     joint_group_positions_.data.resize(12);
 
     std::ifstream readfile;
-    readfile.open("/home/eric/catkin_ws/data.txt");
+    readfile.open("/home/eric/catkin_ws/second_go_upstairs.txt");
     quadruped_model::JointPositions joint_position_file;
     std::vector<quadruped_model::JointPositions> joint_position_collection;
     double time;
@@ -63,10 +63,10 @@ int main(int argc, char **argv)
 //            >> joint_position_file(11);
         readfile >> time >> joint_position_file(0) >> joint_position_file(1)>> joint_position_file(2)
             >> joint_position_file(3)>> joint_position_file(4)
-            >> joint_position_file(5)>> joint_position_file(9)
-            >> joint_position_file(10)>> joint_position_file(11)
-            >> joint_position_file(6)>> joint_position_file(7)
-            >> joint_position_file(8);
+            >> joint_position_file(5)>> joint_position_file(6)
+            >> joint_position_file(7)>> joint_position_file(8)
+            >> joint_position_file(9)>> joint_position_file(10)
+            >> joint_position_file(11);
         joint_position_collection.push_back(joint_position_file);
     }
     readfile.close();

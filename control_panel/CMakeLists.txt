@@ -52,7 +52,6 @@ catkin_package(
 
 qt5_wrap_cpp(rqt_control_panel_plugin_MOCS ${rqt_control_panel_plugin_HDRS})
 qt5_wrap_ui(rqt_control_panel_plugin_UIS_H ${rqt_control_panel_plugin_UIS})
-
 include_directories(${rqt_control_panel_plugin_INCLUDE_DIRECTORIES} ${catkin_INCLUDE_DIRS})
 add_library(${PROJECT_NAME} ${rqt_control_panel_plugin_SRCS} ${rqt_control_panel_plugin_MOCS} ${rqt_control_panel_plugin_UIS_H})
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})

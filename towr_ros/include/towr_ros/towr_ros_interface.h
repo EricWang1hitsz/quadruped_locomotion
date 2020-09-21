@@ -128,6 +128,9 @@ private:
   ros::Publisher trajectory_pub_;
   void PublishTrajectoryToController();
 
+  // Get contact foothold whole trajectory.
+  void GetContactFoothold(XppVec& trajectory);
+
   void UserCommandCallback(const TowrCommandMsg& msg);
   void InitialStateCallback(const free_gait_msgs::RobotStateConstPtr& robot_state_msg);
   XppVec GetTrajectory() const;

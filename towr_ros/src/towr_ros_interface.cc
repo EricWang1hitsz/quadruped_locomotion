@@ -83,8 +83,8 @@ TowrRosInterface::TowrRosInterface ()
   n.getParam("/simulation", simulation_);
   ROS_WARN_STREAM("simulation: " << simulation_ << std::endl);
   // TODO(EricWang): seems that it is too big.
-  visualization_dt_ = 0.01;
-//  visualization_dt_ = 0.0005;
+  //visualization_dt_ = 0.01;
+  visualization_dt_ = 0.0005;
 //  visualization_dt_ = 0.000125;
 
   // alloc memory.
@@ -145,6 +145,9 @@ BaseState TowrRosInterface::GetGoalState(const TowrCommandMsg& msg) const
   goal.lin.at(kVel) = xpp::Convert::ToXpp(msg.goal_lin.vel);
   goal.ang.at(kPos) = xpp::Convert::ToXpp(msg.goal_ang.pos);
   goal.ang.at(kVel) = xpp::Convert::ToXpp(msg.goal_ang.vel);
+  // Strive4G8ness: Set goal position.
+  //goal.lin.at(kPos).z() = 0.52;
+  ROS_INFO("Get goal state ");
 
   return goal;
 }
@@ -176,6 +179,7 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
   }
   else {
       formulation_.final_base_ = GetGoalState(msg);
+      ROS_INFO_STREAM("final base pos z " << formulation_.final_base_.lin.at(kPos).z() << std::endl);
   }
 
   SetTowrInitialState();//! eric_wang: Add intialized base pos and nominal stance into formulation.
@@ -238,7 +242,7 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
 //   xpp_msgs::RobotStateCartesianTrajectory xpp_msg = xpp::Convert::ToRos(GetTrajectory());
 
   // Prints the variables, costs and constraints.
-//  nlp_.PrintCurrent();
+  //nlp_.PrintCurrent();
 
 }
 
@@ -315,7 +319,7 @@ void TowrRosInterface::PublishTrajectoryToController()
     surface_normal.y = 0.00;
     surface_normal.z = 1.00;
     // Defaults to /home/user/.ros/
-    std::string pathToBag = "test.bag";
+    std::string pathToBag = "sendToBalanceController.bag";
     // std::string topic_name = "towr_trajectory";
     std::string topic_name = "/desired_robot_state";
 

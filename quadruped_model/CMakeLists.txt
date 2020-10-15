@@ -182,6 +182,13 @@ target_link_libraries(kinematics_visualizer_node
     ${catkin_LIBRARIES}
     ${RBDL_LIBRARY}
     ${RBDL_URDFReader_LIBRARY})
+
+add_executable(kinematics_control_node src/kinematicsControl.cpp)
+target_link_libraries(kinematics_control_node
+    ${PROJECT_NAME}
+    ${catkin_LIBRARIES}
+    ${RBDL_LIBRARY}
+    ${RBDL_URDFReader_LIBRARY})
 #############
 ## Install ##
 #############

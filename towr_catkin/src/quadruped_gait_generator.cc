@@ -380,10 +380,12 @@ QuadrupedGaitGenerator::GetStrideLimp () const
 QuadrupedGaitGenerator::GaitInfo
 QuadrupedGaitGenerator::GetStrideCrawl() const
 {
-    double t_stand = 0.1;
-    double t_crawl = 0.3;
+//    double t_stand = 0.1;
+//    double t_crawl = 0.3;
 //    double t_stand = 0.5;
 //    double t_crawl = 1.2;
+      double t_stand = 0.3;
+      double t_crawl = 0.3;
     auto times =
     {
         t_crawl, t_stand,

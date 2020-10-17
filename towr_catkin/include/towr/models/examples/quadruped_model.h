@@ -33,7 +33,8 @@ public:
     {
         const double x_nominal_b = 0.425;
         const double y_nominal_b = 0.305;
-        const double z_nominal_b = -0.46;
+        //const double z_nominal_b = -0.46;
+        const double z_nominal_b = -0.52;
 
         // nominal stance in base frame.
         nominal_stance_.at(LF) << x_nominal_b, y_nominal_b, z_nominal_b;
@@ -42,7 +43,8 @@ public:
         nominal_stance_.at(RH) << -x_nominal_b, -y_nominal_b, z_nominal_b;
 
         // maxmum dev from nominal stance.
-        max_dev_from_nominal_ << 0.15, 0.10, 0.10;
+        // the easiest way to change leg lift height.
+        max_dev_from_nominal_ << 0.15, 0.10, 0.25;
     }
 };
 /**

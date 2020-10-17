@@ -85,6 +85,7 @@ TowrRosInterface::TowrRosInterface ()
   // TODO(EricWang): seems that it is too big.
   //visualization_dt_ = 0.01;
   visualization_dt_ = 0.0005;
+//  visualization_dt_ = 0.00025;
 //  visualization_dt_ = 0.000125;
 
   // alloc memory.

@@ -123,10 +123,14 @@ public:
   double GetHeightDerivWrtX(double x, double y) const override;
 
 private:
-  const double slope_start_ = 1.0;
-  const double up_length_   = 1.0;
-  const double down_length_ = 1.0;
-  const double height_center = 0.7;
+//  const double slope_start_ = 1.0;
+//  const double up_length_   = 1.0;
+//  const double down_length_ = 1.0;
+//  const double height_center = 0.7;
+  const double slope_start_ = 0.5;
+  const double up_length_   = 0.97;
+  const double down_length_ = 0.97;
+  const double height_center = 0.26;
 
   const double x_down_start_ = slope_start_+up_length_;
   const double x_flat_start_ = x_down_start_ + down_length_;

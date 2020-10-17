@@ -24,13 +24,22 @@
 
 using namespace std;
 using namespace quadruped_model;
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "kinematics_control_node");
     ros::NodeHandle nh;
+    double loopRate_;
+    string filePath_;
+    nh.getParam("/loopRate", loopRate_);
+    nh.getParam("/filePath", filePath_);
+    ROS_WARN_STREAM("Loop Rate " << loopRate_ << std::endl);
+    ROS_WARN_STREAM("File Path " << filePath_ << std::endl);
+    sleep(5);
     ros::Publisher joint_pub = nh.advertise<sensor_msgs::JointState>("/joint_states", 1000);
     ros::Publisher pos_command_pub_ = nh.advertise<std_msgs::Float64MultiArray>("/all_joints_position_group_controller/command",1); // Strive4G8ness: pure position control.
-    ros::Rate loop_rate(400);
+    //ros::Rate loop_rate(200);
+    ros::Rate loop_rate(loopRate_);
     sensor_msgs::JointState joint_state;
     std_msgs::Float64MultiArray joint_group_positions_;
 
@@ -53,7 +62,8 @@ int main(int argc, char **argv)
     joint_group_positions_.data.resize(12);
 
     std::ifstream readfile;
-    readfile.open("/home/eric/catkin_ws/data.txt");
+    //readfile.open("/home/eric/catkin_ws/data.txt");
+    readfile.open(filePath_.c_str());
     quadruped_model::JointPositions joint_position_file;
     std::vector<quadruped_model::JointPositions> joint_position_collection;
     double time;

@@ -50,8 +50,8 @@ towr::SwingConstraint::InitVariableDependedQuantities (const VariablesPtr& x)
   ROS_INFO_STREAM("Pure swing node size << " << pure_swing_node_ids_.size() << std::endl);
 
   // constrain xy position and velocity of every swing node
-//  int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k2D;
-  int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k3D; // add z constraints
+  int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k2D;
+//  int constraint_count =  pure_swing_node_ids_.size()*Node::n_derivatives*k3D; // add z constraints
 
   SetRows(constraint_count);
 }
@@ -80,16 +80,16 @@ SwingConstraint::GetValues () const
       g(row++) = curr.v()(dim) - des_vel_center(dim);
     }
 
-    if(node_id = 1)
-    {
-        g(row++) = curr.p()(Z) - 0.05; // boundZero
-        g(row++) = curr.v()(Z) - 1.0; // no bound
-    }
-    else
-    {
-        g(row++) = curr.p()(Z) - 0.0;
-        g(row++) = curr.v()(Z) - 0.0;
-    }
+//    if(node_id = 1)
+//    {
+//        g(row++) = curr.p()(Z) - 0.05; // boundZero
+//        g(row++) = curr.v()(Z) - 1.0; // no bound
+//    }
+//    else
+//    {
+//        g(row++) = curr.p()(Z) - 0.0;
+//        g(row++) = curr.v()(Z) - 0.0;
+//    }
 
     //g(row++) = curr.p()(Z) - 0.2; // position z constraint curr.p()(Z) - 0.2 > 0
 //    g(row++) = curr.p()(Z) - 0.05; //!Eric_Wang: Set z position value.
@@ -101,34 +101,34 @@ SwingConstraint::GetValues () const
 SwingConstraint::VecBound
 SwingConstraint::GetBounds () const
 {
-  //return VecBound(GetRows(), ifopt::BoundZero);
+  return VecBound(GetRows(), ifopt::BoundZero);
 
-  VecBound bounds;
+//  VecBound bounds;
 
-  for(int s_node_id : pure_swing_node_ids_)
-  {
-      if(s_node_id == 1)
-      {
-          bounds.push_back(ifopt::BoundZero);
-          bounds.push_back(ifopt::BoundZero);
-          bounds.push_back(ifopt::BoundZero);
-          bounds.push_back(ifopt::BoundZero);
-          bounds.push_back(ifopt::BoundZero);
-          bounds.push_back(ifopt::NoBound);
-      }
-      else
-      {
-          bounds.push_back(ifopt::BoundZero);
-          bounds.push_back(ifopt::BoundZero);
-          bounds.push_back(ifopt::BoundZero);
-          bounds.push_back(ifopt::BoundZero);
-          bounds.push_back(ifopt::NoBound);
-          bounds.push_back(ifopt::NoBound);
-      }
+//  for(int s_node_id : pure_swing_node_ids_)
+//  {
+//      if(s_node_id == 1)
+//      {
+//          bounds.push_back(ifopt::BoundZero);
+//          bounds.push_back(ifopt::BoundZero);
+//          bounds.push_back(ifopt::BoundZero);
+//          bounds.push_back(ifopt::BoundZero);
+//          bounds.push_back(ifopt::BoundZero);
+//          bounds.push_back(ifopt::NoBound);
+//      }
+//      else
+//      {
+//          bounds.push_back(ifopt::BoundZero);
+//          bounds.push_back(ifopt::BoundZero);
+//          bounds.push_back(ifopt::BoundZero);
+//          bounds.push_back(ifopt::BoundZero);
+//          bounds.push_back(ifopt::NoBound);
+//          bounds.push_back(ifopt::NoBound);
+//      }
 
-  }
+//  }
 
-  return bounds;
+//  return bounds;
 }
 
 void

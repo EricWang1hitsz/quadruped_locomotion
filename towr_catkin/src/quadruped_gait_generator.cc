@@ -89,6 +89,7 @@ QuadrupedGaitGenerator::SetCombo (Combos combo)
 //    case C7: SetGaits({Stand, Crawl, Crawl, Crawl, Crawl,CrawlE, Stand}); break;
     case C7: SetGaits({Stand, Crawl, Crawl,CrawlE, Stand}); break;
     case C8: SetGaits({Stand, Run1, Run1, Stand}); break; // Tort
+  case C9: SetGaits({Stand, Crawl, Crawl, Crawl, CrawlE, Stand});
 //    case C8: SetGaits({Stand, Lift, Stand}); break; // LF leg lift.
     default: assert(false); std::cout << "Gait not defined\n"; break;
   }
@@ -385,7 +386,7 @@ QuadrupedGaitGenerator::GetStrideCrawl() const
 //    double t_stand = 0.5;
 //    double t_crawl = 1.2;
       double t_stand = 0.3;
-      double t_crawl = 0.3;
+      double t_crawl = 0.2;
     auto times =
     {
         t_crawl, t_stand,

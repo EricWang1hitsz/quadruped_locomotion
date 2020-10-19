@@ -44,7 +44,7 @@ public:
 
         // maxmum dev from nominal stance.
         // the easiest way to change leg lift height.
-        max_dev_from_nominal_ << 0.15, 0.10, 0.25;
+        max_dev_from_nominal_ << 0.15, 0.10, 0.35;
     }
 };
 /**

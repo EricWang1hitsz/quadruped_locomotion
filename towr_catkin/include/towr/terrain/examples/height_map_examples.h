@@ -128,9 +128,10 @@ private:
 //  const double down_length_ = 1.0;
 //  const double height_center = 0.7;
   const double slope_start_ = 0.5;
-  const double up_length_   = 0.97;
-  const double down_length_ = 0.97;
-  const double height_center = 0.26;
+  const double up_length_   = 1.02;
+  const double down_length_ = 1.02;
+  //const double height_center = 0.28; // real height.
+  const double height_center = 0.35; // test it if increase slope.
 
   const double x_down_start_ = slope_start_+up_length_;
   const double x_flat_start_ = x_down_start_ + down_length_;

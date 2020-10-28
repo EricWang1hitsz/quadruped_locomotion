@@ -194,7 +194,7 @@ void
 TowrUserInterface::CallbackKey (int c)
 {
   const static double d_lin = 0.1;  // [m]
-  const static double d_ang = 0.1; // [rad]
+  const static double d_ang = 0.05; // [rad]
 
   switch (c) {
     case KEY_RIGHT:

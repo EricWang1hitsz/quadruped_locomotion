@@ -65,7 +65,7 @@ private:
   //-------------------------------------------------------
   double block_start = 0.5;
   double length_     = 3.5;
-  double height_     = 0.12; // [m]
+  double height_     = 0.0; // [m]
 
   double eps_ = 0.03; // approximate as slope
   const double slope_ = height_/eps_;
@@ -79,10 +79,10 @@ public:
   double GetHeight(double x, double y) const override;
 
 private:
-  double first_step_start_  = 0.65;
+  double first_step_start_  = 0.60;
   double first_step_width_  = 0.3; // 0.4
-  double height_first_step  = 0.13;
-  double height_second_step = 0.26;
+  double height_first_step  = 0.18;
+  double height_second_step = 0.30;
   double width_top = 1.0;
 };
 

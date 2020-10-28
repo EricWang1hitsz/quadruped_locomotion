@@ -8,6 +8,8 @@
   <!-- set initilized robot info -->
   <!-- <param name="/simulation" value="true" /> -->
     <param name="/simulation" value="false" />
+    <param name="/save_iteration_result" value="true" />
+    <param name="/robot_state_desired_topic" value="/xpp/state_des" />
 
   <!-- TOWR: Start the optimizer and GUI-->
   <group unless="$(arg debug)">

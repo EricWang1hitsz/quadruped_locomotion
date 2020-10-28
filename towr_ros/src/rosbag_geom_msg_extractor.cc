@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <string>
 #include <vector>
-
+#include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <rosbag/message_instance.h>
@@ -45,21 +45,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * See towr/matlab/plot_rosbag.m for an example of how to open these.
  */
+
+using namespace std;
+
 int main(int argc, char *argv[])
 {
-  if (argc==1) {
-    std::cerr << "Error: Please enter path to bag file\n";
-    return 0;
-  }
+  ros::init(argc, argv, "rosbag_geom_msg_extractor");
 
-  std::string bag_file = argv[1];
+  ros::NodeHandle nodehandle_;
+
+  string filePath;
+  string topic;
+  nodehandle_.param("/filePath", filePath, string("/home/eric/.ros/dataAnalysis/towr_trajectory.bag"));
+  nodehandle_.param("topic", topic, string("/towr/nlp_iterations_name0"));
 
   rosbag::Bag bag_r;
-  bag_r.open(bag_file, rosbag::bagmode::Read);
+  bag_r.open(filePath, rosbag::bagmode::Read);
   std::cout << "Reading from bag " + bag_r.getFileName() << std::endl;
 
   // select which iterations (message topics) to be included in bag file
-  std::string topic = "/xpp/state_des";
+
   rosbag::View view(bag_r, rosbag::TopicQuery(topic));
   if (view.size() == 0) {
     std::cerr << "Error: Topic " << topic << " doesn't exist\n";
@@ -68,7 +73,7 @@ int main(int argc, char *argv[])
 
   // write the message with modified timestamp into new bag file
   rosbag::Bag bag_w;
-  bag_w.open("/home/winklera/Desktop/matlab_rdy.bag", rosbag::bagmode::Write);
+  bag_w.open("/home/eric/.ros/dataAnalysis/towr_matlab.bag", rosbag::bagmode::Write);
 
   BOOST_FOREACH(rosbag::MessageInstance const m, view)
   {
@@ -88,4 +93,6 @@ int main(int argc, char *argv[])
   bag_r.close();
   std::cout << "Successfully created bag " + bag_w.getFileName() << std::endl;
   bag_w.close();
+
+  return 0;
 }

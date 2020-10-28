@@ -46,12 +46,15 @@ BaseMotionConstraint::BaseMotionConstraint (double T, double dt,
   // Strive4G8ness: for base orientation planning.
   //double dev_rad = 0.30;
   // Strive4G8ness: for Crawl rotation planning.
-  //double dev_rad = 0.30;
-  // Strive4G8ness: for Crawl slope planning.
   double dev_rad = 0.30;
+  // Strive4G8ness: for Crawl slope planning.
+//  double dev_rad = 0.20;
   node_bounds_.resize(k6D);
-  node_bounds_.at(AX) = Bounds(-dev_rad, dev_rad);
-  node_bounds_.at(AY) = Bounds(-dev_rad, dev_rad);
+//  node_bounds_.at(AX) = Bounds(-dev_rad, dev_rad);
+  // Strive4G8ness: Move sideways.
+  node_bounds_.at(AX) = Bounds(0.18, 0.25);
+//  node_bounds_.at(AY) = Bounds(-dev_rad, dev_rad);
+  node_bounds_.at(AY) = ifopt::NoBound;
 //  node_bounds_.at(AZ) = ifopt::NoBound;//Bounds(-dev_rad, dev_rad);
   node_bounds_.at(AZ) = Bounds(-dev_rad, dev_rad);
   double z_init = base_linear_->GetPoint(0.0).p().z();
@@ -60,7 +63,7 @@ BaseMotionConstraint::BaseMotionConstraint (double T, double dt,
 //  node_bounds_.at(LY) = Bounds(-0.05, 0.05);
   //node_bounds_.at(LZ) = Bounds(z_init-0.05, z_init+0.05); // allow to move dev_z cm up and down
   // Strive4G8ness: for Crawl slope planning.
-  node_bounds_.at(LZ) = Bounds(z_init-0.10, z_init+0.10); // 0.10
+  node_bounds_.at(LZ) = Bounds(z_init-0.02, z_init+0.02); // 0.10
 
   int n_constraints_per_node = node_bounds_.size();
   SetRows(GetNumberOfNodes()*n_constraints_per_node);

@@ -106,11 +106,15 @@ private:
   free_gait_msgs::RobotState robot_state_;
 
   rosbag::Bag ros_bag;
+  rosbag::Bag visual_bag;
+  std::string visual_file;
 
   ros::Subscriber user_command_sub_;
   ros::Publisher initial_state_pub_;
   ros::Publisher robot_parameters_pub_;
   ros::Subscriber initial_state_sub_;
+
+  bool save_iteration_result;
 
   // Publish swing leg trajectory.
   void publishSwingTrajectory(XppVec& trajectory);

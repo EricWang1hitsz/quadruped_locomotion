@@ -43,11 +43,15 @@ Block::GetHeight (double x, double y) const
   double h = 0.0;
 
   // very steep ramp leading up to block
-  if (block_start <= x && x <=block_start+eps_)
-    h = slope_*(x-block_start);
+//  if (block_start <= x && x <=block_start+eps_)
+//    h = slope_*(x-block_start);
 
-  if (block_start+eps_ <= x && x <= block_start+length_)
-    h = height_;
+//  if (block_start+eps_ <= x && x <= block_start+length_)
+//    h = height_;
+
+  if(block_start <= x && x <= block_start + eps_)
+      h = 0.2;
+  //if(block_start + eps_ <= x && )
 
   return h;
 }
@@ -131,7 +135,8 @@ Slope::GetHeight (double x, double y) const
 
   // going back down
   if (x >= x_down_start_) {
-    z = height_center - slope_*(x-x_down_start_);
+    //z = height_center - slope_*(x-x_down_start_);
+      z = height_center;
   }
 
   // back on flat ground
@@ -149,7 +154,8 @@ Slope::GetHeightDerivWrtX (double x, double y) const
     dzdx = slope_;
 
   if (x >= x_down_start_)
-    dzdx = -slope_;
+//    dzdx = -slope_;
+    dzdx = 0.0;
 
   if (x >= x_flat_start_)
     dzdx = 0.0;

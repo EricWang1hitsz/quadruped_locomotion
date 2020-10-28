@@ -55,6 +55,8 @@ TowrRosInterface::TowrRosInterface ()
 {
   ros::NodeHandle n;
 
+  visual_file = "trajectory_bag.bag";
+
   user_command_sub_ = n.subscribe(towr_msgs::user_command, 1,
                                   &TowrRosInterface::UserCommandCallback, this);
 
@@ -80,8 +82,9 @@ TowrRosInterface::TowrRosInterface ()
 
   solver_ = std::make_shared<ifopt::IpoptSolver>();
 
-  n.getParam("/simulation", simulation_);
+  n.param("/simulation", simulation_, bool(false));
   ROS_WARN_STREAM("simulation: " << simulation_ << std::endl);
+  n.param("/save_iteration_result", save_iteration_result, bool(false));
   // TODO(EricWang): seems that it is too big.
   //visualization_dt_ = 0.01;
   visualization_dt_ = 0.0005;
@@ -218,7 +221,8 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
 
      PublishTrajectoryToController();
 
-    SaveOptimizationAsRosbag(bag_file, robot_params_msg, msg, false);
+    //Strive4G8ness: Save iteration msgs if true.
+    SaveOptimizationAsRosbag(bag_file, robot_params_msg, msg, save_iteration_result);
   }
 
 
@@ -233,6 +237,13 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
         + xpp_msgs::terrain_info // topic name 2
         + " -r " + std::to_string(msg.replay_speed) // replay speed
         + " --quiet " + bag_file).c_str()); // return a pointer of string.
+    int success2 = system(("rosbag play --topics " // int system(char *string)
+        + xpp_msgs::lf_trajectory + " " // topic name 1 and advertise the topic.
+        + xpp_msgs::rf_trajectory + " " // topic name 1 and advertise the topic.
+        + xpp_msgs::lh_trajectory + " " // topic name 1 and advertise the topic.
+        + xpp_msgs::rh_trajectory // topic name 2
+        + " -r " + std::to_string(msg.replay_speed) // replay speed
+        + " --quiet " + visual_file).c_str()); // return a pointer of string.
   }
   // plot the trajectory using rqt_bag.
   if (msg.plot_trajectory) {
@@ -582,6 +593,7 @@ void TowrRosInterface::publishSwingTrajectory(XppVec &trajectory)
     lh_trajectory_.header.stamp = ros::Time::now();
     rh_trajectory_.header.frame_id = "world";
     rh_trajectory_.header.stamp = ros::Time::now();
+    visual_bag.open(visual_file, rosbag::bagmode::Write);
     for(std::vector<xpp::RobotStateCartesian>::iterator it = trajectory.begin(); it != trajectory.end(); ++it)
     {
         lf_traj = xpp::Convert::ToRos(it->ee_motion_.at(0));
@@ -607,6 +619,12 @@ void TowrRosInterface::publishSwingTrajectory(XppVec &trajectory)
         lh_trajectory_.poses.push_back(lh_trajectory);
         rh_trajectory_.poses.push_back(rh_trajectory);
     }
+    ros::Time t0(1e-6);
+    visual_bag.write(xpp_msgs::lf_trajectory, t0, lf_trajectory_);
+    visual_bag.write(xpp_msgs::rf_trajectory, t0, rf_trajectory_);
+    visual_bag.write(xpp_msgs::lh_trajectory, t0, lh_trajectory_);
+    visual_bag.write(xpp_msgs::rh_trajectory, t0, rh_trajectory_);
+    visual_bag.close();
     lf_foot_traj_pub_.publish(lf_trajectory_);
     rf_foot_traj_pub_.publish(rf_trajectory_);
     lh_foot_traj_pub_.publish(lh_trajectory_);

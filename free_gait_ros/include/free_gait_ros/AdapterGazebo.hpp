@@ -11,6 +11,7 @@
 #include "free_gait_core/executor/AdapterBase.hpp"
 #include "free_gait_core/free_gait_core.hpp"
 #include <memory>
+#include <std_msgs/Float64MultiArray.h>
 
 namespace free_gait {
 
@@ -47,6 +48,7 @@ class AdapterGazebo : public AdapterBase
   virtual bool isLegGrounded(const LimbEnum& limb) const;
   virtual JointPositionsLeg getJointPositionsForLimb(const LimbEnum& limb) const;
   virtual JointPositions getAllJointPositions() const;
+  virtual JointPositions getAllJointPositionsTarget() const;
   virtual JointVelocitiesLeg getJointVelocitiesForLimb(const LimbEnum& limb) const;
   virtual JointVelocities getAllJointVelocities() const;
   virtual JointAccelerationsLeg getJointAccelerationsForLimb(const LimbEnum& limb) const;
@@ -99,6 +101,13 @@ class AdapterGazebo : public AdapterBase
   const std::string worldFrameId_;
   const std::string baseFrameId_;
   Stance footholdsInSupport_;
+
+  // Strive4G8ness: Publish joint command.
+  ros::Publisher pos_command_pub_;
+  ros::NodeHandle nodehandle_;
+  std_msgs::Float64MultiArray joint_group_positions_;
+
+  void publishJointCommand();
 };
 
 } /* namespace free_gait */

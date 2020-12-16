@@ -32,11 +32,12 @@ public:
     quadrupedKinematicModel() : KinematicModel(4)
     {
         const double x_nominal_b = 0.425;
-//        const double y_nominal_b = 0.305;
-        const double y_nominal_b = 0.355;
-        const double z_nominal_b = -0.35;
-//        const double z_nominal_b = -0.52;
-//        const double z_nominal_b = -0.48;
+        const double y_nominal_b = 0.305;
+//        const double y_nominal_b = 0.355;
+//        const double z_nominal_b = -0.35;
+        const double z_nominal_b = -0.52;
+//        const double z_nominal_b = -0.45;
+//        const double z_nominal_b = -0.40;
 
         // nominal stance in base frame.
         nominal_stance_.at(LF) << x_nominal_b, y_nominal_b, z_nominal_b;
@@ -46,8 +47,8 @@ public:
 
         // maxmum dev from nominal stance.
         // the easiest way to change leg lift height.
-        //max_dev_from_nominal_ << 0.15, 0.10, 0.20;
-        max_dev_from_nominal_ << 0.15, 0.10, 0.15;
+        max_dev_from_nominal_ << 0.15, 0.10, 0.10;
+//        max_dev_from_nominal_ << 0.15, 0.10, 0.15;
     }
 };
 /**

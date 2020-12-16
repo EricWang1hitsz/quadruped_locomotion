@@ -45,6 +45,10 @@ AdapterGazebo::AdapterGazebo()
   branches_.push_back(BranchEnum::RF_LEG);
   branches_.push_back(BranchEnum::RH_LEG);
   branches_.push_back(BranchEnum::LH_LEG);
+//  ROS_WARN_ONCE(" Publish joint position command by adapter gazebo ");
+//  pos_command_pub_ = nodehandle_.advertise<std_msgs::Float64MultiArray>("/all_joints_position_group_controller/command", 1);
+
+  joint_group_positions_.data.resize(12);
 }
 
 AdapterGazebo::~AdapterGazebo()
@@ -76,6 +80,7 @@ bool AdapterGazebo::updateExtrasBefore(const StepQueue& stepQueue, State& state)
 
 bool AdapterGazebo::updateExtrasAfter(const StepQueue& stepQueue, State& state)
 {
+    // Strive4G8ness: Calculate joint positions of support leg.
   //TODO(Shunyao): This is to update to Extras after Executor, real or sim Robot
 //  *state_ = state;
   State state_new = state;
@@ -149,7 +154,75 @@ bool AdapterGazebo::updateExtrasAfter(const StepQueue& stepQueue, State& state)
 //    }
 //  }
 //  stepQueue.getCurrentStep().getLegMotion(LimbEnum::LF_LEG
-  return true;
+//  return true;
+
+//  *state_ = state;
+//  JointPositionsLeg joint_limb;
+//  Position I_r_IF, B_r_BF;
+//  Position I_r_IB = state_->getPositionWorldToBaseInWorldFrame(); // Strive4G8ness: Feedback.
+//  RotationQuaternion I_R_B = state_->getOrientationBaseToWorld(); // Strive4G8ness: Feedback.
+////  BaseMotionBase baseMotion = stepQueue.getCurrentStep().getBaseMotion();
+////  BaseAuto baseAuto;
+////  BaseTarget baseTarget;
+////  BaseTrajectory baseTrajectory;
+////  switch (baseMotion.getType()) {
+////    case BaseMotionBase::Type::Auto:
+////    {
+////      baseAuto = (dynamic_cast<BaseAuto&>(baseMotion));
+////      break;
+////    }
+////    case BaseMotionBase::Type::Target:
+////    {
+////      baseTarget = (dynamic_cast<BaseTarget&>(baseMotion));
+////      break;
+////    }
+////    case BaseMotionBase::Type::Trajectory:
+////    {
+////      baseTrajectory = (dynamic_cast<BaseTrajectory&>(baseMotion));
+////      break;
+////    }
+////    default:
+////    {
+////      baseAuto = (dynamic_cast<BaseAuto&>(baseMotion));
+////      break;
+////    }
+////  }
+//  if(stepQueue.empty()) return true;
+//  double time = stepQueue.getCurrentStep().getTime();
+////  std::cout<<"+++++++++++++TIME++++++++++++++++"<<std::endl
+////          <<stepQueue.getCurrentStep().getTime()<<std::endl<<"++++++++++++TIME++++++++++++++++++"<<std::endl;
+//  for(const auto& limb : getLimbs())
+//  {
+//    if(state_->isSupportLeg(limb))
+//    {
+//      if(!(time>0.001))
+//      {
+//        footholdsInSupport_[limb] = state_->getPositionWorldToFootInWorldFrame(limb);
+//      }
+////      std::cout<<"foot hold "<<footholdsInSupport_<<std::endl;
+//      // Strive4G8ness: Forward Kinematics with feedback joint positions.
+//      I_r_IF = state_->getPositionWorldToFootInWorldFrame(limb);
+//      // Strive4G8ness: bug.
+////      I_r_IF = footholdsInSupport_.at(limb);
+////      baseMotion.getDuration();
+////      std::cout<<"=========================="<<getLimbStringFromLimbEnum(limb)<<"============================"<<std::endl;
+////      std::cout<<"+++++++++++++I_r_IF++++++++++++++++"<<std::endl
+////              <<I_r_IF<<std::endl<<"+++++++++++++I_r_IF+++++++++++++++++"<<std::endl;
+////      I_r_IF = stepQueue.getCurrentStep().getLegMotion(limb).
+//      B_r_BF = I_R_B.inverseRotate(I_r_IF - I_r_IB);
+////      std::cout<<"+++++++++++++B_r_BF++++++++++++++++"<<std::endl
+////              <<B_r_BF<<std::endl<<"+++++++++++++B_r_BF+++++++++++++++++"<<std::endl;
+//      state_->getLimbJointPositionsFromPositionBaseToFootInBaseFrame(B_r_BF, limb, joint_limb);
+//      state_->setJointPositionsForLimb(limb, joint_limb); // Strive4G8ness: Target, joint command.
+//    } else {
+
+//    }
+//  }
+////  stepQueue.getCurrentStep().getLegMotion(LimbEnum::LF_LEG
+//  state.setCurrentLimbJoints(getAllJointPositions()); // Strive4G8ness: feedback.
+//  std::cout << "all joint positions " << getAllJointPositionsTarget() << std::endl; // Strive4G8ness: target, joint command.
+//  publishJointCommand();
+//  return true;
 }
 
 const std::string& AdapterGazebo::getWorldFrameId() const
@@ -309,6 +382,12 @@ JointPositions AdapterGazebo::getAllJointPositions() const
 {
 //  return state_->getJointPositions();
   return state_->getJointPositionFeedback();
+}
+
+JointPositions AdapterGazebo::getAllJointPositionsTarget() const
+{
+    // Strive4G8ness: Joint command.
+    return state_->getJointPositions();
 }
 
 JointVelocitiesLeg AdapterGazebo::getJointVelocitiesForLimb(const LimbEnum& limb) const
@@ -502,6 +581,19 @@ void AdapterGazebo::resetToCopyOfState() const
 const State& AdapterGazebo::getState() const
 {
   return *state_;
+}
+
+void AdapterGazebo::publishJointCommand()
+{
+    JointPositions all_joints_positions_command = getAllJointPositionsTarget();
+
+    for(unsigned int i = 0; i < 12; i++)
+    {
+        joint_group_positions_.data[i] = all_joints_positions_command(i);
+    }
+
+    pos_command_pub_.publish(joint_group_positions_);
+    ROS_WARN_ONCE(" Publish 12 joint position command Once ");
 }
 
 } /* namespace */

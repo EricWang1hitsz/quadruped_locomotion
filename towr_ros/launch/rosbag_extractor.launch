@@ -1,7 +1,7 @@
 <launch>
 
   <param name="/topic" value="/xpp/state_des" />
-  <param name="/filePath" value="/home/eric/.ros/dataAnalysis/roll0.2_Crawl.bag" />
+  <param name="/filePath" value="/home/eric/.ros/dataAnalysis/Crawl_8s.bag" />
 
   <node
     name="rosbag_geom_msg_extractor" pkg="towr_ros" type="rosbag_geom_msg_extractor" output="screen" >

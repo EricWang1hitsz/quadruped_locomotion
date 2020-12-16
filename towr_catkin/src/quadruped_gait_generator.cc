@@ -88,8 +88,9 @@ QuadrupedGaitGenerator::SetCombo (Combos combo)
     case C6: SetGaits({Stand, Crawl, Stand}); break; // crawl
 //    case C7: SetGaits({Stand, Crawl, Crawl, Crawl, Crawl,CrawlE, Stand}); break;
     case C7: SetGaits({Stand, Crawl, Crawl,CrawlE, Stand}); break;
-    case C8: SetGaits({Stand, Run1, Run1, Stand}); break; // Tort
+    case C8: SetGaits({Stand, Run1, Run1, Stand}); break; // Torts
   case C9: SetGaits({Stand, Crawl, Crawl, Crawl, CrawlE, Stand});
+  case C10: SetGaits({Stand, Crawl, Crawl, Crawl, Crawl, CrawlE, Stand});
 //    case C8: SetGaits({Stand, Lift, Stand}); break; // LF leg lift.
     default: assert(false); std::cout << "Gait not defined\n"; break;
   }
@@ -400,6 +401,10 @@ QuadrupedGaitGenerator::GetStrideCrawl() const
         PB_, BB_, // RH swing
         BP_, BB_, // RF swing
         bB_, BB_, // LH swing
+//        PB_, BB_, // LF swing
+//        BP_, BB_, // RH swing
+//        bB_, BB_, // RF swing
+//        Bb_, BB_, // LH swing
     };
 
     return std::make_pair(times, phase_contacts);

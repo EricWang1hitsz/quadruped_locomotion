@@ -31,6 +31,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define TOWR_TOWR_ROS_INCLUDE_TOWR_ROS_HEIGHT_MAP_EXAMPLES_H_
 
 #include <towr/terrain/height_map.h>
+#include <ros/ros.h>
+#include <grid_map_core/GridMap.hpp>
+#include <grid_map_ros/grid_map_ros.hpp>
+
+using namespace grid_map;
 
 namespace towr {
 
@@ -81,8 +86,8 @@ public:
 private:
   double first_step_start_  = 0.60;
   double first_step_width_  = 0.3; // 0.4
-  double height_first_step  = 0.18;
-  double height_second_step = 0.30;
+  double height_first_step  = 0.20;
+  double height_second_step = 0.40;
   double width_top = 1.0;
 };
 
@@ -130,8 +135,8 @@ private:
   const double slope_start_ = 0.5;
   const double up_length_   = 1.02;
   const double down_length_ = 1.02;
-  //const double height_center = 0.28; // real height.
-  const double height_center = 0.35; // test it if increase slope.
+  const double height_center = 0.28; // real height.
+//  const double height_center = 0.35; // test it if increase slope.
 
   const double x_down_start_ = slope_start_+up_length_;
   const double x_flat_start_ = x_down_start_ + down_length_;
@@ -171,6 +176,19 @@ private:
 
   const double x_end1_ = x_start_+length_;
   const double x_end2_ = x_start_+2*length_;
+};
+
+class GridMapCase : public HeightMap {
+public:
+    GridMapCase();
+    double GetHeight(double x, double y) const override;
+    void gridMapCallback(const grid_map_msgs::GridMapConstPtr& grid_map);
+
+private:
+    ros::NodeHandle nh_;
+    ros::Subscriber gridMapSubscriber_;
+    grid_map::GridMap gridMap;
+
 };
 
 /** @}*/

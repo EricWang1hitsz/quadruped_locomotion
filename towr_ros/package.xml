@@ -31,6 +31,7 @@
   <depend>xpp_msgs</depend>
   <depend>free_gait_msgs</depend>
   <depend>free_gait_core</depend>
+  <depend>curves</depend>
 
   
   <exec_depend>xterm</exec_depend>

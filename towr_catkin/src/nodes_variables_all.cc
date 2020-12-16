@@ -28,6 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************************************************************/
 
 #include <towr/variables/nodes_variables_all.h>
+#include <ros/ros.h>
 
 namespace towr {
 
@@ -48,6 +49,7 @@ NodesVariablesAll::GetNodeValuesInfo (int idx) const
   std::vector<NodeValueInfo> vec_nvi;
 
   int n_opt_values_per_node_ = 2*GetDim();
+  ROS_WARN_STREAM_ONCE("Number optimization variables per node " << n_opt_values_per_node_ << std::endl);
   int internal_id = idx%n_opt_values_per_node_; // 0...6 (p.x, p.y, p.z, v.x, v.y. v.z)
 
   NodeValueInfo nvi;

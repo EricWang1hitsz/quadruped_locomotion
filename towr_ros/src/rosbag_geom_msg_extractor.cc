@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/foreach.hpp>
 
 #include <xpp_msgs/RobotStateCartesian.h>
+#include <std_msgs/Bool.h>
 
 /**
  * Extracts the standard ROS geometry_msgs/Vector3.h from a ROS bag of
@@ -83,10 +84,22 @@ int main(int argc, char *argv[])
     bag_w.write("base_acc", t, state_msg->base.accel.linear);
 
     int n_feet = state_msg->ee_motion.size();
+    std_msgs::Bool contact_;
 
     for (int i=0; i<n_feet; ++i) {
       bag_w.write("foot_pos_"+std::to_string(i), t, state_msg->ee_motion.at(i).pos);
       bag_w.write("foot_force_"+std::to_string(i), t, state_msg->ee_forces.at(i));
+      if(state_msg->ee_contact.at(i))
+      {
+          contact_.data = 1.0;
+          bag_w.write("foot_contact_"+std::to_string(i), t, contact_);
+      }
+      else
+      {
+          contact_.data = 0.0;
+          bag_w.write("foot_contact_"+std::to_string(i), t, contact_);
+      }
+      //bag_w.write("foot_contact_"+std::to_string(i), t, state_msg->ee_contact.at(i));
     }
   }
 

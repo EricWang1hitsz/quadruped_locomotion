@@ -45,8 +45,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ifopt/ipopt_solver.h>
 
 #include "free_gait_msgs/RobotState.h"
+#include <quadruped_model/common/typedefs.hpp>
 //#include "free_gait_core/executor/State.hpp"
+#include <curves/CubicHermiteE3Curve.hpp>
+#include "curves/ScalarCurveConfig.hpp"
+#include "curves/PolynomialSplineContainer.hpp"
+#include "curves/polynomial_splines_containers.hpp"
+#include "curves/PolynomialSplineScalarCurve.hpp"
+#include "curves/PolynomialSplineVectorSpaceCurve.hpp"
 
+using namespace romo;
+using namespace curves;
 namespace towr {
 
 
@@ -113,6 +122,7 @@ private:
   ros::Publisher initial_state_pub_;
   ros::Publisher robot_parameters_pub_;
   ros::Subscriber initial_state_sub_;
+  ros::Publisher curvePublisher_;
 
   bool save_iteration_result;
 
@@ -151,6 +161,16 @@ private:
   void SaveTrajectoryInRosbag (rosbag::Bag&,
                                const std::vector<xpp::RobotStateCartesian>& traj,
                                const std::string& topic) const;
+
+//  curves::CubicHermiteE3Curve curve_;
+//  std::vector<curves::PolynomialSplineQuinticVector3Curve> lf_curves_;
+//  std::shared_ptr<curves::PolynomialSplineQuinticVector3Curve> lf_curve_;
+  std::shared_ptr<curves::CubicHermiteE3Curve> lf_curve_;
+  typedef typename curves::Time Time;
+  typedef typename curves::PolynomialSplineQuinticVector3Curve::ValueType valuetype;
+
+  void GetTrajectoryCurve();
+
 
 };
 

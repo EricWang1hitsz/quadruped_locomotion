@@ -21,6 +21,11 @@
 #include <memory>
 #include <string>
 
+#include <quadruped_model/quadrupedkinematics.h>
+#include <quadruped_model/quadruped_state.h>
+
+using namespace quadruped_model;
+
 namespace free_gait {
 
 class StateRosPublisher
@@ -35,6 +40,9 @@ class StateRosPublisher
   bool publish(const State& state);
   bool publish();
   bool publish(const Pose& base_pose);
+
+  //  QuadrupedKinematics QK_;
+    std::shared_ptr<QuadrupedKinematics> QK_;
  private:
   bool initializeRobotStatePublisher();
 
@@ -46,6 +54,8 @@ class StateRosPublisher
   //! eric_wang: Publish desired robot state to the controller.
   ros::Publisher robot_state_pub_, stance_marker_pub_;
   free_gait_msgs::RobotState robot_state_;
+
+
 };
 
 } /* namespace free_gait */

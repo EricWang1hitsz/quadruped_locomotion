@@ -49,7 +49,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace towr {
-
+std::vector<double> times_;
+std::vector<Position> values_;
 
 TowrRosInterface::TowrRosInterface ()
 {
@@ -65,7 +66,7 @@ TowrRosInterface::TowrRosInterface ()
   // static const std::string robot_state_desired("/xpp/state_des")
   initial_state_pub_  = n.advertise<xpp_msgs::RobotStateCartesian>
                                           (xpp_msgs::robot_state_desired, 1);// the whole trajectory is also published by the topic.
-
+  curvePublisher_ = n.advertise<xpp_msgs::RobotStateCartesian>("/curve", 100);
   // static const std::string robot_parameters("/xpp/params");
   robot_parameters_pub_  = n.advertise<xpp_msgs::RobotParameters>
                                     (xpp_msgs::robot_parameters, 1);
@@ -82,11 +83,14 @@ TowrRosInterface::TowrRosInterface ()
 
   solver_ = std::make_shared<ifopt::IpoptSolver>();
 
+//  lf_curve_.reset(new curves::PolynomialSplineQuinticVector3Curve());
+  lf_curve_.reset(new curves::CubicHermiteE3Curve());
+
   n.param("/simulation", simulation_, bool(false));
   ROS_WARN_STREAM("simulation: " << simulation_ << std::endl);
   n.param("/save_iteration_result", save_iteration_result, bool(false));
   // TODO(EricWang): seems that it is too big.
-  //visualization_dt_ = 0.01;
+//  visualization_dt_ = 0.01;
   visualization_dt_ = 0.0005;
 //  visualization_dt_ = 0.00025;
 //  visualization_dt_ = 0.000125;
@@ -212,6 +216,9 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
 
     // Publish base pose and leg trajectory.
     auto trajectory = GetTrajectory();
+
+   // GetTrajectoryCurve();
+
     publishSwingTrajectory(trajectory);
 
     publishBasePoseArray(trajectory);
@@ -254,7 +261,7 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg& msg)
 //   xpp_msgs::RobotStateCartesianTrajectory xpp_msg = xpp::Convert::ToRos(GetTrajectory());
 
   // Prints the variables, costs and constraints.
-  //nlp_.PrintCurrent();
+  nlp_.PrintCurrent();
 
 }
 
@@ -298,6 +305,8 @@ TowrRosInterface::GetTrajectory () const
 
   EulerConverter base_angular(solution.base_angular_);
 
+  bool lf_contact = true;
+
   while (t<=T+1e-5) {
     int n_ee = solution.ee_motion_.size();
     xpp::RobotStateCartesian state(n_ee);
@@ -310,18 +319,95 @@ TowrRosInterface::GetTrajectory () const
 
     for (int ee_towr=0; ee_towr<n_ee; ++ee_towr) {
       int ee_xpp = ToXppEndeffector(n_ee, ee_towr).first;
-
       state.ee_contact_.at(ee_xpp) = solution.phase_durations_.at(ee_towr)->IsContactPhase(t);
       state.ee_motion_.at(ee_xpp)  = ToXpp(solution.ee_motion_.at(ee_towr)->GetPoint(t));
       state.ee_forces_ .at(ee_xpp) = solution.ee_force_.at(ee_towr)->GetPoint(t).p();
+    }
+    if(state.ee_contact_.at(0) != lf_contact)
+    {
+        double time = t;
+        times_.push_back(time);
+        double x = solution.ee_motion_.at(0)->GetPoint(t).p().x();
+        double y = solution.ee_motion_.at(0)->GetPoint(t).p().y();
+        double z = solution.ee_motion_.at(0)->GetPoint(t).p().z();
+        Position foothold(x, y, z);
+        values_.push_back(foothold);
+        lf_contact = state.ee_contact_.at(0);
     }
 
     state.t_global_ = t;
     trajectory.push_back(state);
     t += visualization_dt_;
   }
+  ROS_INFO_STREAM("times size " << times_.size() << std::endl);
+
 
   return trajectory;
+}
+
+void TowrRosInterface::GetTrajectoryCurve()
+{
+    ROS_INFO("Curve");
+    XppVec trajectory;
+    xpp::RobotStateCartesian state(4);
+    std::vector<Time> lf_times_;
+    std::vector<valuetype> lf_trajectory_;
+
+    ROS_INFO_STREAM("time 0 " << times_[0] << std::endl);
+    ROS_INFO_STREAM("time 1 " << times_[1] << std::endl);
+    ROS_INFO_STREAM("value 0 " << values_[0] << std::endl);
+    ROS_INFO_STREAM("value 1 " << values_[1] << std::endl);
+
+    lf_times_.push_back(times_[0]);
+    lf_trajectory_.push_back(valuetype(values_[0].x(), values_[0].y(), values_[0].z()));
+
+//    lf_times_.push_back((times_[1] - times_[0]) / 6 + times_[0]);
+//    ROS_INFO_STREAM("time 11 " << (times_[1] - times_[0]) / 6 + times_[0] << std::endl);
+//    lf_trajectory_.push_back(valuetype(values_[0].x(), values_[0].y(), values_[0].z() + 0.05));
+
+    lf_times_.push_back((times_[1] - times_[0]) / 3 + times_[0]);
+    ROS_INFO_STREAM("time 11 " << (times_[1] - times_[0]) / 3 + times_[0] << std::endl);
+    lf_trajectory_.push_back(valuetype(values_[0].x(), values_[0].y(), values_[0].z() + 0.10));
+
+//    lf_times_.push_back((times_[1] - times_[0]) / 2 + times_[0]);
+//    ROS_INFO_STREAM("time 22 " << (times_[1] - times_[0]) / 3 * 2 + times_[0]<< std::endl);
+//    lf_trajectory_.push_back(valuetype((values_[1].x() + values_[0].x()) / 2, (values_[1].y() + values_[0].y()) / 2, values_[1].z() + 0.10));
+
+    lf_times_.push_back((times_[1] - times_[0]) / 3 * 2 + times_[0]);
+    ROS_INFO_STREAM("time 22 " << (times_[1] - times_[0]) / 3 * 2 + times_[0]<< std::endl);
+    lf_trajectory_.push_back(valuetype(values_[1].x(), values_[1].y(), values_[1].z() + 0.10));
+
+//    lf_times_.push_back((times_[1] - times_[0]) / 6 * 5 + times_[0]);
+//    ROS_INFO_STREAM("time 22 " << (times_[1] - times_[0]) / 3 * 2 + times_[0]<< std::endl);
+//    lf_trajectory_.push_back(valuetype(values_[1].x(), values_[1].y(), values_[1].z() + 0.05));
+
+    lf_times_.push_back((times_[1]));
+    lf_trajectory_.push_back(valuetype(values_[1].x(), values_[1].y(), values_[1].z()));
+
+    ROS_INFO("Start fit curve ");
+    lf_curve_->fitCurve(lf_times_, lf_trajectory_);
+    ROS_INFO("Fit finished ");
+    //double T
+    double dt = times_[0];
+    valuetype lf_tra_curve;
+    ROS_INFO("test");
+    while( dt < times_[1])
+    {
+        lf_curve_->evaluate(lf_tra_curve, dt);
+        dt += visualization_dt_;
+        state.ee_motion_.at(0).p_.x() = lf_tra_curve.x();
+        state.ee_motion_.at(0).p_.y() = lf_tra_curve.y();
+        state.ee_motion_.at(0).p_.z() = lf_tra_curve.z();
+        ROS_INFO_STREAM(" dt " << dt << std::endl);
+        ROS_INFO_STREAM(" x " << lf_tra_curve.x() <<std::endl);
+        ROS_INFO_STREAM(" z " << lf_tra_curve.z() <<std::endl);
+        //trajectory.push_back(state);
+        curvePublisher_.publish(xpp::Convert::ToRos(state));
+
+      }
+    times_.clear();
+    values_.clear();
+
 }
 
 void TowrRosInterface::PublishTrajectoryToController()
@@ -552,6 +638,20 @@ TowrRosInterface::SaveOptimizationAsRosbag (const std::string& bag_name,
 
   // save the final trajectory
   auto final_trajectory = GetTrajectory(); //! eric_wang: the whole trajectory from t0 to T.
+  // Curve.
+//  std::vector<Position> foothold_;
+//  for(std::vector<xpp::RobotStateCartesian>::iterator it = final_trajectory.begin(); it != final_trajectory.end(); ++it)
+//  {
+
+//      double x = it->ee_motion_.at(0).p_.x();
+//      double y = it->ee_motion_.at(0).p_.y();
+//      double z = it->ee_motion_.at(0).p_.z();
+//      Position foothold(x, y, z);
+//      bool contact = it->ee_contact_.at(0);
+//      if(contact)
+//          foothold_.push_back(foothold);
+
+//  }
   SaveTrajectoryInRosbag(bag, final_trajectory, xpp_msgs::robot_state_desired);
 
   bag.close();
@@ -649,7 +749,7 @@ void TowrRosInterface::publishBasePoseArray(XppVec &trajectory)
         state_ = xpp::Convert::ToRos(*it);// To xpp_msgs::RobotStateCartesian.
         pose_ = state_.base.pose;
         pose.pose = state_.base.pose;
-        if(count > 10){ // Not visual all poses.
+        if(count > 400){ // Not visual all poses.
             poses_.poses.push_back(pose_);
             path_.poses.push_back(pose);
             count = 0;

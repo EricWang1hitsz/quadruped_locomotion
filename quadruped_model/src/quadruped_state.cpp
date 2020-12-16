@@ -114,6 +114,7 @@ double QuadrupedState::getLegMass(const LimbEnum& limb) const
 }
 const Position QuadrupedState::getPositionWorldToBaseInWorldFrame() const
 {
+    // Strive4G8ness: Feedback.
   return poseInWorldFrame_.getPosition();//TODO(Shunyao):How to update poseInWorldFrame
 };
 
@@ -143,7 +144,7 @@ const Position QuadrupedState::getPositionWorldToFootInWorldFrame(const LimbEnum
 const Position QuadrupedState::getPositionBaseToFootInBaseFrame(const LimbEnum& limb)
 {
   //  std::cout<<"get here"<<std::endl;
-  JointPositionsLimb jointPositions = current_limb_joints_.at(limb);
+    JointPositionsLimb jointPositions = current_limb_joints_.at(limb); // Strive4G8ness: Feedback.
   //  std::cout<<"in getPositionBaseToFootInBaseFrame() jointPositions  "<<jointPositions<<std::endl;
   Pose foot_pose;
   FowardKinematicsSolve(jointPositions, limb, foot_pose);
@@ -181,6 +182,7 @@ Pose QuadrupedState::getPoseFootInBaseFrame(const LimbEnum& limb, JointPositions
 
 const RotationQuaternion QuadrupedState::getOrientationBaseToWorld() const
 {
+    // Strive4G8ness: Feedback.
   return  poseInWorldFrame_.getRotation();
 }
 
@@ -207,6 +209,7 @@ JointPositions& QuadrupedState::getJointPositions()
   //TODO(shunyao): `joint_position_` was declared as a static member, which means
   //  it doesn't change with the copy of class, so it always has one value, but is
   //there necessary to use static member? And how to fix it?
+    // Strive4G8ness: Target!!!
   return joint_positions_;// joint command
 }
 JointVelocities& QuadrupedState::getJointVelocities()
@@ -253,10 +256,12 @@ bool QuadrupedState::setOrientationBaseToWorld(const RotationQuaternion rotation
 
 const Position QuadrupedState::getTargetPositionWorldToBaseInWorldFrame() const
 {
+    // Strive4G8ness: Target!
   return positionWorldToBaseInWorldFrame_;
 }
 const RotationQuaternion QuadrupedState::getTargetOrientationBaseToWorld() const
 {
+    // Strive4G8ness: Target!
   return orientationBaseToWorld_;
 }
 
@@ -267,6 +272,7 @@ const Position QuadrupedState::getTargetFootPositionInBaseForLimb(const LimbEnum
 
 bool QuadrupedState::setTargetFootPositionInBaseForLimb(const Position& foot_position, const LimbEnum& limb)
 {
+    // Strive4G8ness: Target!!!
   target_foot_position_in_base_.at(limb) = Vector(foot_position.toImplementation());
   return true;
 }
@@ -306,8 +312,7 @@ bool QuadrupedState::setAngularVelocityBaseInBaseFrame(const LocalAngularVelocit
 bool QuadrupedState::setJointPositions(const JointPositions joint_positions)
 {
   joint_positions_ = joint_positions;
-  //! eric_wang: change it! 20200527
-//  setCurrentLimbJoints(joint_positions_);
+  setCurrentLimbJoints(joint_positions_);
   return true;
 }
 bool QuadrupedState::setJointVelocities(const JointVelocities joint_velocoties)

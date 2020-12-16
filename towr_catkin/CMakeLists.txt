@@ -12,6 +12,8 @@ find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
     #quadruped_model
     kindr_ros
+    grid_map_core
+    grid_map_ros
 )
 
 ## System dependencies are found with CMake's conventions

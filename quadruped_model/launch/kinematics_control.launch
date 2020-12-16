@@ -1,7 +1,7 @@
 <launch>
   <param name= "/loopRate" type= "double" value= "200"/>
 
-  <param name= "/filePath" type= "string" value= "/home/eric/catkin_ws/data.txt"/>
+  <param name= "/filePath" type= "string" value= "/home/eric/Experiment/New Experiment/x0.1_y0.1Back.txt"/>
 
   <node name="kinematics_control_node" pkg="quadruped_model" type="kinematics_control_node" output="screen">
   </node>

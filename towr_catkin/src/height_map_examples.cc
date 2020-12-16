@@ -217,4 +217,28 @@ ChimneyLR::GetHeightDerivWrtY (double x, double y) const
   return dzdy;
 }
 
+GridMapCase::GridMapCase()
+{
+    ROS_INFO("Set grid height map ");
+    gridMapSubscriber_ = nh_.subscribe("/elevation_mapping/elevation_map", 1, &GridMapCase::gridMapCallback, this);
+}
+
+double GridMapCase::GetHeight(double x, double y) const
+{
+    Position ee_position(x, y);
+    double height;
+    // Strive4G8ness: Check grid map layer.
+    height = gridMap.atPosition("elevation_inpainted", ee_position);
+
+    return height;
+}
+
+void GridMapCase::gridMapCallback(const grid_map_msgs::GridMapConstPtr &grid_map)
+{
+    GridMap gridMap_;
+    GridMapRosConverter::fromMessage(*grid_map, gridMap_);
+    gridMap = gridMap_;
+
+}
+
 } /* namespace towr */

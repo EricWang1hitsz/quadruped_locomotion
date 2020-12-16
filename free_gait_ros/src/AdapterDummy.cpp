@@ -68,6 +68,7 @@ bool AdapterDummy::updateExtrasBefore(const StepQueue& stepQueue, State& state)
 
     state.setCurrentLimbJoints(state_->getJointPositionFeedback());
   //! set target pose to actual pose, to simulate robot has moved
+    // Strive4G8ness: target as feedback!
   state.setPoseBaseToWorld(Pose(state.getTargetPositionWorldToBaseInWorldFrame(),
                                 state.getTargetOrientationBaseToWorld()));
   return true;

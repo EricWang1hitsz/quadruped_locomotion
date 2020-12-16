@@ -60,8 +60,8 @@ void UserCommandCallback(const towr_ros::TowrCommand& msg_in)
   m.scale.z = 0.003;
   m.ns = "terrain";
   m.header.frame_id = "world";
-  m.color.r = 245./355; m.color.g  = 222./355; m.color.b  = 179./355; // wheat
-  m.color.a = 0.65;
+  m.color.r = 255./355; m.color.g  = 250./355; m.color.b  = 250./355; // gray
+  m.color.a = 0.2;
 
   visualization_msgs::MarkerArray msg;
   double x =  x_min;

@@ -365,7 +365,7 @@ bool Executor::writeSurfaceNormals()
 
 bool Executor::writeLegMotion()
 {
-  ROS_INFO_THROTTLE(10, "Write Leg Motion");
+//  ROS_INFO_THROTTLE(10, "Write Leg Motion");
   for (const auto& limb : adapter_.getLimbs()) {
     if (state_.isSupportLeg(limb)) state_.setEmptyControlSetup(limb);
   }
@@ -385,6 +385,7 @@ bool Executor::writeLegMotion()
 
       case LegMotionBase::TrajectoryType::EndEffector:
       {
+//        ROS_WARN_THROTTLE(10, "Leg Motion Trajectory EndEffector" );
         const auto& endEffectorMotion = dynamic_cast<const EndEffectorMotionBase&>(legMotion);
         //! WSHY: Directly endeffector order in cartisiane space
 
@@ -404,6 +405,8 @@ bool Executor::writeLegMotion()
             return false;
           }
           state_.setJointPositionsForLimb(limb, jointPositions);// update joint command
+          // Strive4G8ness: Joint position command.
+//          ROS_WARN_STREAM("Joint position command " << jointPositions << std::endl);
           state_.setTargetFootPositionInBaseForLimb(positionInBaseFrame, limb);
         }
         if (controlSetup[ControlLevel::Velocity]) {
@@ -456,7 +459,7 @@ bool Executor::writeLegMotion()
         break;
     }
   }
-
+//  ROS_WARN("joint position calculate once ");
   return true;
 }
 
@@ -482,6 +485,15 @@ bool Executor::writeTorsoMotion()
                                                     baseMotion.evaluatePose(time));
     state_.setPositionWorldToBaseInWorldFrame(poseInWorldFrame.getPosition());
     state_.setOrientationBaseToWorld(poseInWorldFrame.getRotation());
+    // Strive4G8ness:
+//    for (const auto& limb : adapter_.getLimbs()) {
+//      if (state_.isSupportLeg(limb))
+//      {
+//          Position foot_position_in_world = adapter_.getPositionWorldToFootInWorldFrame(limb);
+//          Position foot_position_in_base = poseInWorldFrame.getRotation().rotate(foot_position_in_world);
+//      }
+//    }
+
 //    std::cout<<"pose TARGET in world frame : "<<poseInWorldFrame.getPosition()<<std::endl;
   }
   if (controlSetup[ControlLevel::Velocity]) {

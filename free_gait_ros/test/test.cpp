@@ -24,7 +24,8 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "step_test");
   ros::NodeHandle nh("~");
-  AdapterRos adapterRos_(nh, free_gait::AdapterRos::AdapterType::Gazebo);
+  //AdapterRos adapterRos_(nh, free_gait::AdapterRos::AdapterType::Gazebo);
+  AdapterRos adapterRos_(nh, free_gait::AdapterRos::AdapterType::Preview);
   pluginlib::ClassLoader<AdapterBase> adapter_loader("free_gait_ros", "free_gait::AdapterBase");
   std::unique_ptr<AdapterBase> adapter;
   adapter.reset(adapter_loader.createUnmanagedInstance("free_gait_ros/AdapterDummy"));

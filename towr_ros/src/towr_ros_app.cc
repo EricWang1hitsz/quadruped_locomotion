@@ -85,9 +85,9 @@ public:
                       [&](Vector3d& p){ p.z() = z_ground; } );// feet at 0 height
           formulation_.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
           // Strive4G8ness: Set initial base orientation infos.
-          formulation_.initial_base_.ang.at(kPos).x() = 0.20;
-          formulation_.initial_base_.ang.at(kPos).y() = 0.0;
-          formulation_.initial_base_.ang.at(kPos).z() = 0.0;
+//          formulation_.initial_base_.ang.at(kPos).x() = 0.20;
+//          formulation_.initial_base_.ang.at(kPos).y() = 0.0;
+//          formulation_.initial_base_.ang.at(kPos).z() = 0.0;
       }
 
   }

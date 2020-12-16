@@ -83,6 +83,7 @@ public:
                    SlopeID,
                    ChimneyID,
                    ChimneyLRID,
+                   GridMapID,
                    TERRAIN_COUNT };
 
   static HeightMap::Ptr MakeTerrain(TerrainID type);

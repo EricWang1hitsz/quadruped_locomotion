@@ -35,6 +35,8 @@ public:
       is_start_gait(false),
       is_joy_control(false),
       AdapterRos_(nodehandle, free_gait::AdapterRos::AdapterType::Gazebo),
+//       Strive4G8ness: preview action via rviz.
+//      AdapterRos_(nodehandle, free_gait::AdapterRos::AdapterType::Preview),
       gait_generate_client_(nodehandle)
 
   {
@@ -189,6 +191,7 @@ public:
 //            cout<<"*************************************send joint command : "<<endl<<adapter->getState().getJointPositions()<<endl;
             if(!use_gazebo){
                 //! WSHY: fake mode, publish fake state to rviz visualization
+              ROS_WARN_ONCE("Not use gazebo, publish fake state ");
               rosPublisher->publish(adapter->getState());
               }
             if(!is_kinematics_control){

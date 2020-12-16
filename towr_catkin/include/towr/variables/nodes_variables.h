@@ -181,6 +181,7 @@ public:
    * @param final_val  value of the final node.
    * @param t_total  The total duration to reach final node (to set velocities).
    */
+  // Strive4G8ness: configuration point???
   void SetByLinearInterpolation(const VectorXd& initial_val,
                                 const VectorXd& final_val,
                                 double t_total);

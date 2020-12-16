@@ -73,8 +73,8 @@ TowrUserInterface::TowrUserInterface ()
   robot_      = RobotModel::Monoped;
 //  robot_      = RobotModel::Quadruped;
   terrain_    = HeightMap::FlatID;
-  gait_combo_ = GaitGenerator::C7;
-  total_duration_ = 3.2;
+  gait_combo_ = GaitGenerator::C3;
+  total_duration_ = 2.0;
   visualize_trajectory_ = false;
   plot_trajectory_ = false;
   replay_speed_ = 1.0; // realtime

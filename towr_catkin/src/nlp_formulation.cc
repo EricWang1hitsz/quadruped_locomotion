@@ -376,7 +376,7 @@ NlpFormulation::MakeEEMotionCost(double weight) const
   for (int ee=0; ee<params_.GetEECount(); ee++) {
     cost.push_back(std::make_shared<NodeCost>(id::EEMotionNodes(ee), kVel, X, weight));
     cost.push_back(std::make_shared<NodeCost>(id::EEMotionNodes(ee), kVel, Y, weight));
-    cost.push_back(std::make_shared<NodeCost>(id::EEMotionNodes(ee), kVel, Z, weight));
+//    cost.push_back(std::make_shared<NodeCost>(id::EEMotionNodes(ee), kVel, Z, weight));
     //cost.push_back(std::make_shared<NodeCost>(id::EEMotionNodes(ee), kPos, Z, weight));
   }
 

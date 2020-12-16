@@ -29,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <towr/variables/spline_holder.h>
 #include <towr/variables/phase_spline.h>
+#include <ros/ros.h>
 
 namespace towr{
 
@@ -44,6 +45,7 @@ SplineHolder::SplineHolder (NodesVariables::Ptr base_lin_nodes,
   base_angular_ = std::make_shared<NodeSpline>(base_ang_nodes.get(), base_poly_durations);
   phase_durations_ = phase_durations;
 
+  //ROS_INFO_STREAM("EE motion node size " << ee_motion_nodes.size()); // 4
   for (uint ee=0; ee<ee_motion_nodes.size(); ++ee) {
     if (durations_change) {
       // spline that changes the polynomial durations (affects Jacobian)

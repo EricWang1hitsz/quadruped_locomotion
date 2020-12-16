@@ -16,6 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
   free_gait_core
   geometry_msgs
   nav_msgs
+  quadruped_model
+  curves
+  curves_ros
 
 
 )
@@ -38,7 +41,7 @@ generate_messages( DEPENDENCIES std_msgs xpp_msgs)
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES ${PROJECT_NAME}
-   CATKIN_DEPENDS xpp_states roscpp free_gait_msgs free_gait_core xpp_msgs
+   CATKIN_DEPENDS xpp_states roscpp free_gait_msgs free_gait_core xpp_msgs curves
    #DEPENDS towr_catkin
 
 )
